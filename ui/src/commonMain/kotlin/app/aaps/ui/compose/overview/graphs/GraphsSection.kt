@@ -209,9 +209,12 @@ private val PREDICTION_SPOKEN_ORDER = listOf(
 /** Series types available as BG graph overlays */
 private val BG_OVERLAY_SERIES = listOf(SeriesType.ACTIVITY, SeriesType.PREDICTIONS, SeriesType.BG_PARABOLA)
 
-/** Series types available for user-configurable secondary graphs (IOB + UI-only overlays excluded) */
+/**
+ * Series types available for user-configurable secondary graphs (IOB + UI-only overlays excluded).
+ * AutoISF fork: iobTH is only offered in the IOB graph. It is an IOB value and means nothing without IOB.
+ */
 private val CONFIGURABLE_SERIES = SeriesType.entries.filter {
-    it != SeriesType.IOB && it != SeriesType.PREDICTIONS && it != SeriesType.BG_PARABOLA
+    it != SeriesType.IOB && it != SeriesType.PREDICTIONS && it != SeriesType.BG_PARABOLA && it != SeriesType.IOB_TH_EFFECTIVE
 }
 
 @OptIn(FlowPreview::class)
@@ -653,11 +656,12 @@ fun GraphsSection(
                 .graphInspectTouch(inspect)
                 .scrollsBgGraph(bgScrollForwarder, inspect, graphViewModel::onGraphInteraction)
         ) {
+            // AutoISF fork: iobTH next to IOB, on the same axis, while AutoISF is active
+            val iobSeries = if (autoIsfActive && SeriesType.IOB_TH_EFFECTIVE in graphConfig.iobOverlays)
+                listOf(SeriesType.IOB, SeriesType.IOB_TH_EFFECTIVE) else listOf(SeriesType.IOB)
             SecondaryGraphCompose(
                 viewModel = graphViewModel,
-                // AutoISF fork: iobTH next to IOB, on the same axis, while AutoISF is active
-                seriesTypes = if (autoIsfActive && SeriesType.IOB_TH_EFFECTIVE in graphConfig.iobOverlays)
-                    listOf(SeriesType.IOB, SeriesType.IOB_TH_EFFECTIVE) else listOf(SeriesType.IOB),
+                seriesTypes = iobSeries,
                 scrollState = iobScrollState,
                 zoomState = iobZoomState,
                 derivedTimeRange = derivedTimeRange,
@@ -669,14 +673,24 @@ fun GraphsSection(
                     .fillMaxWidth()
                     .height(graphConfig.iobHeight.dp - REMOVED_TIME_LABELS_HEIGHT)
             )
-            GraphNameRow(
-                name = stringResource(InterfacesStrings.values_with_slash, stringResource(CoreUiStrings.iob), stringResource(CoreUiStrings.basal_shortname)),
-                editName = stringResource(CoreUiStrings.iob),
-                onEdit = if (isSimpleMode) null else ({ editingIobOverlays = true }),
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 4.dp, bottom = GRAPH_NAME_BOTTOM_PADDING)
-            )
+            Column(
+                horizontalAlignment = Alignment.End,
+                modifier = Modifier.align(Alignment.BottomEnd)
+            ) {
+                GraphNameRow(
+                    name = stringResource(InterfacesStrings.values_with_slash, stringResource(CoreUiStrings.iob), stringResource(CoreUiStrings.basal_shortname)),
+                    editName = stringResource(CoreUiStrings.iob),
+                    onEdit = if (isSimpleMode) null else ({ editingIobOverlays = true }),
+                    modifier = Modifier.padding(end = 4.dp, bottom = GRAPH_NAME_BOTTOM_PADDING)
+                )
+                // AutoISF fork: IOB and iobTH share one axis and differ only by color, so name them
+                if (iobSeries.size > 1) {
+                    SeriesLegend(
+                        seriesTypes = iobSeries,
+                        modifier = Modifier.padding(start = 40.dp, top = 2.dp, bottom = 6.dp)
+                    )
+                }
+            }
         }
         if (editingIobOverlays) {
             GraphSeriesBottomSheet(
@@ -700,8 +714,11 @@ fun GraphsSection(
         var editingGraphIndex by remember { mutableIntStateOf(-1) }
         for (i in 0 until activeCount) {
             val saved = graphConfig.secondaryGraphs[i]
-            // AutoISF fork: without AutoISF its series are left out, and a graph of only those is not shown
-            val secondary = if (autoIsfActive) saved else saved.copy(series = saved.series.filter { it !in GraphConfig.AUTOISF_ONLY_TYPES })
+            // AutoISF fork: without AutoISF its series are left out, and a graph of only those is not shown.
+            // iobTH is only drawn in the IOB graph; an older setting may still have it in a secondary graph.
+            val secondary = saved.copy(series = saved.series.filter {
+                it != SeriesType.IOB_TH_EFFECTIVE && (autoIsfActive || it !in GraphConfig.AUTOISF_ONLY_TYPES)
+            })
             if (secondary.series.isEmpty()) continue
             Box(
                 modifier = Modifier
