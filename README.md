@@ -177,6 +177,21 @@ This program comes with ABSOLUTELY NO WARRANTY, to the extent permitted by appli
 
 The newest changes. ⚠ = this change can affect insulin dosing.
 
+### 2026-11-11 (29) – Update direkt von AutoISF 3.4.2.6 möglich
+
+Bisher ist die App beim Update über **AAPS 3.4.2.6 + AutoISF 3.2.1** bei jedem Start abgestürzt.
+
+- **Datenbank-Version 32 doppelt belegt:** AutoISF 3.4 nutzt Version 32 für seine Tabelle `autoIsfValues`,
+  AAPS 4 für die Spalte `carbInsulin` in den Tagesdosen (TDD). **Fix:** Fehlt die Spalte, wird der TDD-Cache
+  geleert (wird neu berechnet) und die Spalte angelegt; die alte Tabelle `autoIsfValues` wird gelöscht.
+  Bei einer normalen AAPS-4-Datenbank passiert nichts.
+- **Unbekannte Einträge im Benutzerprotokoll** (`AUTOISF_ENABLED`, `AUTOISF_DISABLED`, `IOB_TH_SET`,
+  `ACCE_WEIGHT_SET`) werden zu „UNKNOWN“, und jeder unbekannte Eintrag wird künftig als „UNKNOWN“ gelesen
+  statt abzustürzen.
+- Die übrige Historie bleibt erhalten. Vorher trotzdem **Einstellungen exportieren**; gleicher
+  Signaturschlüssel nötig. Zurück auf 3.4 geht nicht ohne Verlust der Datenbank.
+- Am besten zuerst auf einem **Zweithandy** testen.
+
 ### 2026-11-11 (27) – Sport: Fixe aus dev übernommen (nur sport)
 
 - ⚠ **Activity Classifier:** nimmt die Summe der Schritte der letzten 15 Minuten (vorher nur einen
@@ -229,18 +244,6 @@ The newest changes. ⚠ = this change can affect insulin dosing.
 - **Versionsprüfung aus:** Diese Version ist keine offizielle AAPS-Version. Die Prüfung hätte sie mit den
   offiziellen Versionen verglichen und einige Zeit nach einer neuen offiziellen Version Max IOB auf 0
   gesetzt („Anwendung abgelaufen“) – das hätte den geschlossenen Loop beendet.
-
-### 2026-11-10 (22) – Normale Version: AutoISF-Chip, pinke Parabel, langes Drücken
-
-In der Testversion geprüft und jetzt in der normalen Version (und in sport):
-
-- **AutoISF-Chip** auf der Hauptseite, zum Aufklappen, mit anheftbaren Werten (siehe 16–18).
-- **Pinke BG-Parabel** im BZ-Graph wie in AutoISF 3.2.1 (siehe 19).
-- **Langes Drücken im BZ-Graph** zeigt den farbigen, geglätteten Wert in seiner Farbe und dahinter
-  grau in Klammern den Rohwert, z. B. `147 (raw 151)`. In der normalen Version gibt es die farbigen
-  Punkte nur alle 5 Minuten; zwischen ihnen zeigt das lange Drücken den Rohwert allein.
-- Die farbigen BZ-Punkte jede Minute bleiben vorerst in der Testversion.
-- Reine Anzeige, keine Änderung an der Dosierung.
 
 All changes: [CHANGELOG-autoISF.md](CHANGELOG-autoISF.md)
 <!-- changelog:end -->
