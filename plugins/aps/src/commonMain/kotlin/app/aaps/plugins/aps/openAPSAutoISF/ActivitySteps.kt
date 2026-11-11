@@ -41,13 +41,16 @@ data class MonitorSteps(
  * AutoISF fork: the steps of a watch (Garmin, Wear OS) from the stored step counts, or null when there is
  * no record of a watch newer than [WATCH_STEPS_MAX_AGE_MS].
  *
- * A record that carries sums for 10 minutes or more is used as it is (the newest one). A record with only
- * [SC.steps5min] comes from a watch face that sends its day total: then it holds the steps since the last
- * request, and the windows are the sums of those records that ended inside them.
+ * A record that carries sums for 10 minutes or more is used as it is (the newest one). A Wear OS watch
+ * writes one record per window with the same time; the longest one has all windows (an older watch app
+ * leaves the shorter ones partly empty, AAPS #5499), so only that one is used and nothing counts twice.
+ * A record with only [SC.steps5min] comes from a watch face that sends its day total: then it holds the
+ * steps since the last request, and the windows are the sums of those records that ended inside them.
  */
 internal fun watchSteps(records: List<SC>, now: Long): MonitorSteps? {
     val watch = records.filter { it.device != PHONE_STEPS_DEVICE && it.timestamp <= now }
-    val newest = watch.maxByOrNull { it.timestamp } ?: return null
+    val newestTime = watch.maxOfOrNull { it.timestamp } ?: return null
+    val newest = watch.filter { it.timestamp == newestTime }.maxBy { it.duration }
     if (now - newest.timestamp > WATCH_STEPS_MAX_AGE_MS) return null
     val hasWindows = newest.steps10min > 0 || newest.steps15min > 0 || newest.steps30min > 0 || newest.steps60min > 0 || newest.steps180min > 0
     val sums = if (hasWindows) {

@@ -75,4 +75,20 @@ class ActivityStepsTest {
         assertTrue(isNightForActivityMonitor(nightHoursOn = false, NIGHT_MODE_BOTH, inNightHours = false, sleeping = true))
         assertFalse(isNightForActivityMonitor(nightHoursOn = true, NIGHT_MODE_BOTH, inNightHours = false, sleeping = false))
     }
+
+    @Test
+    fun aWearWatchWithOneRecordPerWindowCountsOnce() {
+        // a Wear OS watch writes six records with the same time, one per window; an older watch app leaves
+        // the windows above the record's own duration empty
+        fun wear(minutes: Int, s10: Int, s15: Int, s30: Int, s60: Int) = SC(
+            duration = minutes * minute, timestamp = now - minute, steps5min = 320, steps10min = s10, steps15min = s15,
+            steps30min = s30, steps60min = s60, steps180min = 0, device = "Pixel Watch", utcOffset = 0
+        )
+        val records = listOf(
+            wear(5, 0, 0, 0, 0), wear(10, 500, 0, 0, 0), wear(15, 500, 700, 0, 0),
+            wear(30, 500, 700, 1200, 0), wear(60, 500, 700, 1200, 2600), wear(180, 500, 700, 1200, 2600)
+        )
+        assertEquals(MonitorSteps(320, 180, 200, 1200, 2600, fromWatch = true), watchSteps(records, now))
+        assertEquals(MonitorSteps(320, 180, 200, 1200, 2600, fromWatch = true), watchSteps(records.reversed(), now))
+    }
 }
