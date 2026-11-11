@@ -461,6 +461,24 @@ enum class IntKey(
         unitType = UnitType.PERCENT,
         sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
     ),
+    // AutoISF fork: how easily the activity classifier sees endurance or strength activity in the steps (0 high, 1 medium, 2 low)
+    ActivityClassifierSensitivity(
+        key = "activity_classifier_sensitivity",
+        defaultValue = 1,
+        min = 0,
+        max = 2,
+        title = KeysStrings.activity_classifier_sensitivity_title,
+        summary = KeysStrings.activity_classifier_sensitivity_summary,
+        preferenceType = PreferenceType.LIST,
+        entriesRefs = mapOf(
+            0 to KeysStrings.activity_classifier_sensitivity_high,
+            1 to KeysStrings.activity_classifier_sensitivity_medium,
+            2 to KeysStrings.activity_classifier_sensitivity_low
+        ),
+        defaultedBySM = true,
+        dependency = BooleanKey.ApsAutoIsfUseActivityClassifier,
+        sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
+    ),
     ActivityRestingHr(
         key = "activity_resting_hr",
         defaultValue = 60,

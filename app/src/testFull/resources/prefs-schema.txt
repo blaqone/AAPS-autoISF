@@ -74,6 +74,7 @@ active_pump_change_timestamp|LongNonKey|false
 active_pump_serial_number|StringNonKey|false
 active_pump_type|StringNonKey|false
 active_scene|StringNonKey|false
+activity_classifier_sensitivity|IntKey|true
 activity_detection|BooleanKey|true
 activity_monitor_night_mode|IntKey|true
 activity_monitor_step_source|IntKey|true

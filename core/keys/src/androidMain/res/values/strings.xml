@@ -437,6 +437,11 @@
 
     <!-- AutoISF 3.2 activity monitor -->
     <string name="pref_title_aps_activity_detection">Activity monitor (steps)</string>
+    <string name="activity_classifier_sensitivity_title">ActivityClassifier sensitivity</string>
+    <string name="activity_classifier_sensitivity_summary">How many steps in 15 minutes count as endurance activity, and how few as strength training with a high heart rate. Can change the insulin given.</string>
+    <string name="activity_classifier_sensitivity_high">High: endurance from 450 steps, strength below 90</string>
+    <string name="activity_classifier_sensitivity_medium">Medium: endurance from 600 steps, strength below 45</string>
+    <string name="activity_classifier_sensitivity_low">Low: endurance from 750 steps, strength below 30</string>
     <string name="pref_title_aps_autoisf_use_activity_classifier">Use ActivityClassifier in AutoISF</string>
     <string name="pref_summary_aps_autoisf_use_activity_classifier">Classify activity from steps and heart rate. Disable to fall back to the reference step-based activity monitor.</string>
     <string name="pref_title_aps_autoisf_use_activity_target_offset">Use activity target offset in AutoISF</string>
