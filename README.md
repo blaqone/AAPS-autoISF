@@ -177,6 +177,22 @@ This program comes with ABSOLUTELY NO WARRANTY, to the extent permitted by appli
 
 The newest changes. ⚠ = this change can affect insulin dosing.
 
+### 2026-11-11 (27) – Sport: Fixe aus dev übernommen (nur sport)
+
+- ⚠ **Activity Classifier:** nimmt die Summe der Schritte der letzten 15 Minuten (vorher nur einen
+  5-Minuten-Block von vor 10–15 min). Neue Einstellung **„ActivityClassifier sensitivity“**:
+  hoch 450/90, **mittel 600/45 (Standard)**, niedrig 750/30 (Schritte in 15 min für Ausdauer / Grenze
+  für Kraftsport). Die Schritte kommen aus derselben Quelle wie beim Activity Monitor (Handy oder Uhr).
+- **IOB-Graph:** Legende für IOB und iobTH, wenn iobTH eingeschaltet ist. iobTH ist nur noch im
+  IOB-Graph wählbar, nicht mehr in den Graphen 2–5.
+- **Automation „Schritte“ (AAPS #5499 von Milos):** liest die neueste Zeile, löst also auch mit
+  Handy-Schritten aus. Von der Wear-Uhr sind 10 und 15 min jetzt Summen. **Eigene Automationen mit
+  Schritten bitte prüfen.**
+- **Logdateien** in `Documents/aapsLogs` wie bei AutoISF 3.4 (stündliches Zip, 30 Tage).
+- ⚠ **Uhr-Schritte, Wear OS:** Eine Wear-Uhr schreibt 6 Zeilen gleichzeitig. Jetzt zählt nur die neueste
+  und längste davon, also nichts doppelt – auch mit einer älteren Wear-App.
+- Activity Monitor selbst unverändert (Grenzen wie im Original AutoISF).
+
 ### 2026-11-11 (26) – Doku: Version 4.0.0 genannt, echter Screenshot
 
 - README und Anleitung nennen jetzt genau **AAPS 4.0.0** statt nur „AAPS 4“.
@@ -224,18 +240,6 @@ In der Testversion geprüft und jetzt in der normalen Version (und in sport):
   grau in Klammern den Rohwert, z. B. `147 (raw 151)`. In der normalen Version gibt es die farbigen
   Punkte nur alle 5 Minuten; zwischen ihnen zeigt das lange Drücken den Rohwert allein.
 - Die farbigen BZ-Punkte jede Minute bleiben vorerst in der Testversion.
-- Reine Anzeige, keine Änderung an der Dosierung.
-
-### 2026-11-10 (19) – Pinke BG-Parabel im BZ-Graph
-
-- Wie in AutoISF 3.2.1: Die Parabel, die AutoISF für acce_ISF an die BZ-Werte legt, wird als
-  **pinke Linie** im BZ-Graph gezeichnet. **Durchgezogen** über die Minuten, auf die sie gelegt wurde,
-  **gestrichelt** 20 Minuten in die Zukunft (nur wenn die Vorhersagen eingeschaltet sind).
-- **Glatt:** ein Punkt pro Minute, bei 1-Minuten-CGM also an jedem Wert. Die Linie wird **bei jedem
-  neuen Wert** neu berechnet, unabhängig vom Loop-Intervall. Sie zeigt die Parabel, die AutoISF
-  wirklich benutzt (roh oder geglättet, je nach Schalter).
-- Ein-/ausschaltbar mit dem Stift am BZ-Graph („BG parabola (AutoISF)“), nur mit AutoISF. Bei neuer
-  Einstellung ist sie an; wer seine Graph-Einstellung schon gespeichert hat, schaltet sie dort ein.
 - Reine Anzeige, keine Änderung an der Dosierung.
 
 All changes: [CHANGELOG-autoISF.md](CHANGELOG-autoISF.md)
