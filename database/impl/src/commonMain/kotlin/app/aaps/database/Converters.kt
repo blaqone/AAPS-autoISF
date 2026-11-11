@@ -26,8 +26,13 @@ class Converters {
     @TypeConverter
     fun fromAction(action: Action?) = action?.name
 
+    /**
+     * AutoISF fork: an unknown name becomes [Action.UNKNOWN] instead of an exception. A database from another
+     * build (AutoISF 3.x wrote `AUTOISF_ENABLED`, `IOB_TH_SET` and more) would else crash every read of the
+     * user entries.
+     */
     @TypeConverter
-    fun toAction(action: String?) = action?.let { Action.valueOf(it) }
+    fun toAction(action: String?) = action?.let { name -> Action.entries.firstOrNull { it.name == name } ?: Action.UNKNOWN }
 
     @TypeConverter
     fun fromSource(source: Sources?) = source?.name

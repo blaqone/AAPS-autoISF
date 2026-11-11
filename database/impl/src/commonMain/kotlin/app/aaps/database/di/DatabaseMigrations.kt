@@ -194,6 +194,48 @@ private val migration31to32 = object : Migration(31, 32) {
  * null by default and no v3 code ever assigned it, so those three columns are NULL on every v3 bolus row.
  * The expression is shared anyway - one rule, and it picks a value up if one is ever there.
  */
+/**
+ * AutoISF fork: user entry actions that only AutoISF 3.x wrote. This build does not know them.
+ */
+internal val AUTOISF3_ACTIONS = listOf("AUTOISF_ENABLED", "AUTOISF_DISABLED", "IOB_TH_SET", "ACCE_WEIGHT_SET")
+
+/**
+ * AutoISF fork: repairs a database that AutoISF 3.x (3.4.2.6+aisf3.2.1) left at version 32.
+ *
+ * AutoISF 3.x used version 32 for its own table `autoIsfValues`, while AAPS 4 uses 32 for the column
+ * `carbInsulin` in `totalDailyDoses`. Room sees 32 and skips 31 to 32, so the column is missing and the
+ * schema check after the upgrade throws - the app crashed on every start. This does what 31 to 32 does,
+ * removes the old AutoISF table (the factors are now in the APS results) and renames the user entries of
+ * AutoISF 3.x to `UNKNOWN`.
+ *
+ * Every step checks first, so a database of AAPS 4 is not changed.
+ */
+internal fun repairAutoIsf3Version32(connection: SQLiteConnection) {
+    if (tableExists(connection, TABLE_TOTAL_DAILY_DOSES) && !columnExists(connection, TABLE_TOTAL_DAILY_DOSES, "carbInsulin")) {
+        // the same as migration31to32: cached data, recalculated later
+        connection.execSQL("DELETE FROM $TABLE_TOTAL_DAILY_DOSES")
+        connection.execSQL("ALTER TABLE `$TABLE_TOTAL_DAILY_DOSES` ADD COLUMN `carbInsulin` REAL NOT NULL DEFAULT 0")
+    }
+    connection.execSQL("DROP TABLE IF EXISTS `autoIsfValues`")
+    if (tableExists(connection, TABLE_USER_ENTRY)) {
+        val names = AUTOISF3_ACTIONS.joinToString(", ") { "'$it'" }
+        connection.execSQL("UPDATE `$TABLE_USER_ENTRY` SET `action` = 'UNKNOWN' WHERE `action` IN ($names)")
+    }
+}
+
+private fun tableExists(connection: SQLiteConnection, table: String): Boolean =
+    connection.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").use { statement ->
+        statement.bindText(1, table)
+        statement.step()
+    }
+
+private fun columnExists(connection: SQLiteConnection, table: String, column: String): Boolean =
+    connection.prepare("PRAGMA table_info(`$table`)").use { statement ->
+        var found = false
+        while (statement.step()) if (statement.getText(1) == column) found = true
+        found
+    }
+
 private val migration32to33 = object : Migration(32, 33) {
 
     /**
@@ -213,6 +255,8 @@ private val migration32to33 = object : Migration(32, 33) {
             "1.0"
 
     override fun migrate(connection: SQLiteConnection) {
+        // AutoISF fork: a database of AutoISF 3.x is at 32 without the 31 to 32 step of AAPS 4
+        repairAutoIsf3Version32(connection)
         // Migration of boluses table (v3 never stamped a bolus, so these always take the sentinel)
         connection.execSQL("CREATE TABLE IF NOT EXISTS new_boluses (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `version` INTEGER NOT NULL, `dateCreated` INTEGER NOT NULL, `isValid` INTEGER NOT NULL, `referenceId` INTEGER, `timestamp` INTEGER NOT NULL, `utcOffset` INTEGER NOT NULL, `amount` REAL NOT NULL, `type` TEXT NOT NULL, `notes` TEXT, `isBasalInsulin` INTEGER NOT NULL, `nightscoutSystemId` TEXT, `nightscoutId` TEXT, `pumpType` TEXT, `pumpSerial` TEXT, `temporaryId` INTEGER, `pumpId` INTEGER, `startId` INTEGER, `endId` INTEGER, `insulinLabel` TEXT NOT NULL, `insulinEndTime` INTEGER NOT NULL, `insulinPeakTime` INTEGER NOT NULL, `concentration` REAL NOT NULL, FOREIGN KEY(`referenceId`) REFERENCES `boluses`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )")
         connection.execSQL(
