@@ -434,6 +434,10 @@
     <string name="pref_title_aps_autoisf_use_activity_target_offset">Use activity target offset in AutoISF</string>
     <string name="pref_summary_aps_autoisf_use_activity_target_offset">Allow ActivityClassifier to raise glucose targets during detected activity when no Temp Target is active.</string>
     <string name="activity_resting_hr_title">Resting heart rate (bpm)</string>
+    <string name="activity_hr_max_title">Maximum heart rate (bpm)</string>
+    <string name="activity_hr_max_summary">HRmax used for exercise zones (220 − age is a common estimate)</string>
+    <string name="pref_title_aps_autoisf_activity_stress_detection">Detect stress from heart rate</string>
+    <string name="pref_summary_aps_autoisf_activity_stress_detection">Elevated heart rate without movement raises the target instead of reducing insulin</string>
     <string name="steps_activity_detected_title">Steps activity detected</string>
     <string name="steps_inactivity_detected_title">Steps inactivity detected</string>
     <string name="steps_graph_from_smartphone_title">Steps graph from smartphone sensor</string>

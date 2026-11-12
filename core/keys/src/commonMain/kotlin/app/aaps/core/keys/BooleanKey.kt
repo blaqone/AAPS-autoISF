@@ -249,6 +249,15 @@ enum class BooleanKey(
         dependency = ApsAutoIsfUseActivityClassifier,
         sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
     ),
+    ApsAutoIsfActivityStressDetection(
+        "autoisf_activity_stress_detection",
+        false,
+        KeysStrings.pref_title_aps_autoisf_activity_stress_detection,
+        KeysStrings.pref_summary_aps_autoisf_activity_stress_detection,
+        defaultedBySM = true,
+        dependency = ApsAutoIsfUseActivityClassifier,
+        sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
+    ),
 
     MaintenanceEnableFabric("enable_fabric2", true, KeysStrings.pref_title_maintenance_enable_fabric, defaultedBySM = true, hideParentScreenIfHidden = true),
 

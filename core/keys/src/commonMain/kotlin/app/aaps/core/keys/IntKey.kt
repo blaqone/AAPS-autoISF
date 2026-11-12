@@ -420,6 +420,14 @@ enum class IntKey(
         max = 100,
         title = KeysStrings.activity_resting_hr_title
     ),
+    ActivityHrMax(
+        key = "activity_hr_max",
+        defaultValue = 180,
+        min = 100,
+        max = 220,
+        title = KeysStrings.activity_hr_max_title,
+        summary = KeysStrings.activity_hr_max_summary
+    ),
     ApsDynIsfAdjustmentFactor(
         key = "DynISFAdjust",
         defaultValue = 100,

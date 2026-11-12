@@ -61,6 +61,7 @@ import app.aaps.plugins.aps.ApsStrings
 import app.aaps.plugins.aps.openAPSSMB.PhoneMovementDetector
 import app.aaps.plugins.aps.openAPSSMB.ActivityClass
 import app.aaps.plugins.aps.openAPSSMB.ActivityClassifier
+import app.aaps.plugins.aps.openAPSSMB.ActivityFusion
 import app.aaps.plugins.aps.openAPSSMB.StepService
 import app.aaps.plugins.aps.events.EventOpenAPSUpdateGui
 import app.aaps.plugins.aps.events.EventResetOpenAPSGui
@@ -272,15 +273,26 @@ open class OpenAPSAutoISFPlugin(
         // During a temp target the step monitor is off (ratio 1.0). The classifier stays off too, so it cannot
         // change sensitivity or SMB size while a temp target decides the target.
         if (useActivityClassifier && !isTempTarget) {
-            // ActivityClassifier fuses phone activity + steps + HR for richer classification.
-            val avgHrForActivity = persistenceLayer.getHeartRatesFromTime(dateUtil.now() - T.mins(15).msecs())
-                .map { it.beatsPerMinute }.average().takeIf { !it.isNaN() } ?: 0.0
-            val activityClass = ActivityClassifier.classify(
+            // ActivityFusion: OS activity signal first, HR fusion when HR is usable, legacy rule
+            // classifier on steps only when it is not. The HR result is kept for the inactivity guard.
+            val hrReadings = persistenceLayer.getHeartRatesFromTime(dateUtil.now() - T.mins(15).msecs())
+            val fusionResult = ActivityFusion.classifyWithHr(
+                hrReadings = hrReadings,
+                nowMillis = dateUtil.now(),
+                hrWindowMinutes = 15,
+                hrMax = preferences.get(IntKey.ActivityHrMax),
+                hrResting = preferences.get(IntKey.ActivityRestingHr),
                 steps15m = recentSteps15Minutes,
-                avgHrLast15m = avgHrForActivity,
-                restingHr = preferences.get(IntKey.ActivityRestingHr)
+                phoneActivity = ActivityClassifier.phoneActivity,
+                stressDetection = preferences.get(BooleanKey.ApsAutoIsfActivityStressDetection),
+                aapsLogger = aapsLogger
             )
-            aapsLogger.debug(LTag.APS, "ActivityClass: $activityClass steps15m=$recentSteps15Minutes hr=$avgHrForActivity")
+            val activityClass = fusionResult.activityClass
+            val avgHrForActivity = fusionResult.hrResult?.averageHrBpm ?: 0.0
+            aapsLogger.debug(
+                LTag.APS,
+                "ActivityClass: $activityClass zone=${fusionResult.hrResult?.hrZone?.label ?: "n/a"} conf=${fusionResult.hrResult?.confidence ?: "n/a"} steps15m=$recentSteps15Minutes hr=$avgHrForActivity"
+            )
 
             if (useActivityTargetOffset && activityClass.targetBgOffsetMgdl > 0.0) {
                 targetBg = (targetBg + activityClass.targetBgOffsetMgdl).coerceAtMost(180.0)
@@ -290,9 +302,14 @@ open class OpenAPSAutoISFPlugin(
 
             // Activity if the classifier or the step monitor sees it. When only the classifier sees it, use the
             // same ratio as full step activity. The ratio is then capped by autosens (activitySensitivityRatio).
-            stepActivityDetected = activityClass == ActivityClass.AEROBIC || activityRatio < 1
-            stepInactivityDetected = !stepActivityDetected && activityClass == ActivityClass.REST && activityRatio > 1
-            if (activityClass == ActivityClass.AEROBIC && activityRatio >= 1) {
+            // STRESS is deliberately not step activity: elevated HR without movement, opposite insulin direction.
+            stepActivityDetected = activityClass.isAerobic || activityRatio < 1
+            // The insulin-adding raise keys on the HR zone directly (not on the class label): on the HR-fusion
+            // path any zone >= 2 blocks it, and so does an unavailable HR — the legacy fallback path (no HR
+            // result) keeps the raise, exactly as before HR fusion existed.
+            stepInactivityDetected = !stepActivityDetected && activityClass.isRestLike && activityRatio > 1 &&
+                ActivityFusion.inactivityRaiseAllowed(fusionResult)
+            if (activityClass.isAerobic && activityRatio >= 1) {
                 activityRatio = defaultActivityRatio(preferences.get(DoubleKey.ActivityScaleFactor))
                 preferences.put(DoubleKey.ActivityMonitorRatio, activityRatio)
             }
@@ -1141,7 +1158,9 @@ open class OpenAPSAutoISFPlugin(
                     BooleanKey.ActivityMonitorShowStepsFromSmartphone,
                     BooleanKey.ApsAutoIsfUseActivityClassifier,
                     BooleanKey.ApsAutoIsfUseActivityTargetOffset,
-                    IntKey.ActivityRestingHr
+                    BooleanKey.ApsAutoIsfActivityStressDetection,
+                    IntKey.ActivityRestingHr,
+                    IntKey.ActivityHrMax
                 )
             )
         ),
