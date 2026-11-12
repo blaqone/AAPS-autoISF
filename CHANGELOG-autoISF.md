@@ -5,6 +5,25 @@ Testversion. Nur mit virtueller Pumpe oder im Open Loop testen.
 
 ---
 
+## 2026-11-12 (31) – Sport: Sport-Modus umgebaut – der Knopf schaltet Half Basal (nur sport, im Test)
+
+Ersetzt die Szenen-Variante aus (30). Die war falsch umgesetzt: Gewollt war nur Half Basal per Knopf.
+
+- ⚠ **Chip „Exercise“** neben dem Ziel schaltet **Half Basal ein** – also die AutoISF-Einstellung
+  „High temp target raises sensitivity“. Keine Szene, keine Dauer. Gleiche Schutzabfrage wie beim TT.
+- **Das TT setzt du selbst** wie gewohnt; Half Basal wirkt nur bei einem hohen TT.
+- **Sport-Ansicht, solange Half Basal über den Chip an ist** (Handy hochkant):
+  - Leiste oben: „Sport mode · half basal on“, **Basal in %** und **in IE/h** (gegenüber dem Profil),
+    die **laufende TBR** und seit wann. Ohne hohes TT steht dort: Half Basal wirkt erst mit hohem TT.
+  - Kacheln **BZ | IOB | Ziel**.
+  - **Nur der BZ-Graph**, direkt darunter die großen Knöpfe **Kohlenhydrate | TT | Insulin** (Insulin außen).
+    IOB-Graph, weitere Graphen, AutoISF-Zeile und Statusleiste sind in dieser Ansicht weg.
+  - Oben **kein Suchfeld**; Menü und Einstellungen bleiben.
+- ⚠ **End** schaltet Half Basal wieder aus. Danach „Activity finished“ mit Dauer, BZ am Anfang/Ende,
+  niedrigstem BZ, Insulin und Kohlenhydraten seit dem Einschalten.
+- Wird „High temp target raises sensitivity“ in den Einstellungen ausgeschaltet, endet die Sport-Ansicht auch.
+- Entfernt: Szenen-Auswahl, Dauer, +15/+30 und das Verlängern von Szenen.
+
 ## 2026-11-12 (30) – Sport: AutoISF Sport-Modus (nur sport, im Test)
 
 - **Chip „Exercise“** auf dem Hauptbildschirm, neben dem Ziel (TT). Tippen öffnet „Start sport mode“:

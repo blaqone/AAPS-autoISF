@@ -90,10 +90,10 @@ This is the **sport branch** (`aaps4-autoisf-sport`), my personal mode. It is th
   gives a small one – at least what the pump really gives (Dana 0.10 U/h, Medtrum 0.05 U/h), never more than
   the profile basal.
 
-- **Sport mode**: an *Exercise* chip next to the target starts one of your scenes (with a high temp target)
-  for 30, 60 or 90 minutes. While it runs, the overview shows BG, IOB and target as big tiles, what half basal
-  makes of it ("Basal 55 %"), +15 / +30 / End, and big buttons for carbs, temp target and insulin. At the end a
-  short summary shows BG, insulin and carbs of the activity. It changes no dosing logic: it only starts the scene.
+- **Sport mode**: an *Exercise* chip next to the target switches half basal on ("High temp target raises
+  sensitivity"). While it is on, the overview shows what the loop makes of it (basal in % and U/h, the temp
+  basal now), BG, IOB and target as big tiles, only the BG graph and big buttons for carbs, temp target and
+  insulin. You set the temp target yourself. End switches half basal off and shows a short summary.
 
 The settings are in the AutoISF settings. ⚠ = can change the insulin given.
 
@@ -181,6 +181,25 @@ This program comes with ABSOLUTELY NO WARRANTY, to the extent permitted by appli
 
 The newest changes. ⚠ = this change can affect insulin dosing.
 
+### 2026-11-12 (31) – Sport: Sport-Modus umgebaut – der Knopf schaltet Half Basal (nur sport, im Test)
+
+Ersetzt die Szenen-Variante aus (30). Die war falsch umgesetzt: Gewollt war nur Half Basal per Knopf.
+
+- ⚠ **Chip „Exercise“** neben dem Ziel schaltet **Half Basal ein** – also die AutoISF-Einstellung
+  „High temp target raises sensitivity“. Keine Szene, keine Dauer. Gleiche Schutzabfrage wie beim TT.
+- **Das TT setzt du selbst** wie gewohnt; Half Basal wirkt nur bei einem hohen TT.
+- **Sport-Ansicht, solange Half Basal über den Chip an ist** (Handy hochkant):
+  - Leiste oben: „Sport mode · half basal on“, **Basal in %** und **in IE/h** (gegenüber dem Profil),
+    die **laufende TBR** und seit wann. Ohne hohes TT steht dort: Half Basal wirkt erst mit hohem TT.
+  - Kacheln **BZ | IOB | Ziel**.
+  - **Nur der BZ-Graph**, direkt darunter die großen Knöpfe **Kohlenhydrate | TT | Insulin** (Insulin außen).
+    IOB-Graph, weitere Graphen, AutoISF-Zeile und Statusleiste sind in dieser Ansicht weg.
+  - Oben **kein Suchfeld**; Menü und Einstellungen bleiben.
+- ⚠ **End** schaltet Half Basal wieder aus. Danach „Activity finished“ mit Dauer, BZ am Anfang/Ende,
+  niedrigstem BZ, Insulin und Kohlenhydraten seit dem Einschalten.
+- Wird „High temp target raises sensitivity“ in den Einstellungen ausgeschaltet, endet die Sport-Ansicht auch.
+- Entfernt: Szenen-Auswahl, Dauer, +15/+30 und das Verlängern von Szenen.
+
 ### 2026-11-12 (30) – Sport: AutoISF Sport-Modus (nur sport, im Test)
 
 - **Chip „Exercise“** auf dem Hauptbildschirm, neben dem Ziel (TT). Tippen öffnet „Start sport mode“:
@@ -241,27 +260,6 @@ Bisher ist die App beim Update über **AAPS 3.4.2.6 + AutoISF 3.2.1** bei jedem 
 - Die gezeichneten Beispielbilder sind entfernt. Stattdessen gibt es einen **echten Screenshot** des
   Hauptbildschirms mit geöffnetem AutoISF-Chip.
 - Nur Doku, keine Änderung an der App.
-
-### 2026-11-11 (24) – Sport-Version: Garmin-Schritte, SMB-Schwelle, Ketoazidose-Schutz (nur sport)
-
-- **Version** heißt `4.0.0-aisf3.2.1-sport`.
-- **Garmin:** Das Watchface kann mit seinen Abfragen die Schritte mitschicken (als Zeitfenster oder als
-  Tagessumme). Nach einer Lücke von über 15 Minuten oder nach Mitternacht wird nur neu angefangen, damit
-  alte Schritte nie wie „gerade aktiv“ aussehen.
-- ⚠ **Activity Monitor – „Schritte von“:** Handy / Uhr / automatisch (Standard: Uhr, wenn sie in den
-  letzten 10 Minuten Schritte geschickt hat, sonst Handy). Mit der Uhr entfällt die Prüfung
-  „Handy wird nicht getragen“.
-- ⚠ **Activity Monitor – „Nacht ist“:** Nachtstunden / State „Sleeping“ / beides (Standard beides).
-  Früher wurden die Nachtstunden ignoriert, sobald es den State gab; jetzt zählen beide – Inaktivität
-  gibt also nie in mehr Fällen mehr Insulin als vorher.
-- ⚠ **SMB-Schwelle** (Standard an, 140 mg/dl): Liegt der BZ darunter, gibt es keine SMBs. TBRs bleiben.
-  Gilt zusätzlich zur Regel gerade/ungerade.
-- ⚠ **Ketoazidose-Schutz** (Standard aus, 5 %, 1–40 %): Statt einer TBR von 0 oder einer sehr niedrigen TBR
-  gibt der Loop mindestens diesen Anteil der Basalrate – nie weniger als die Pumpe wirklich gibt (Dana
-  0,10 U/h, Medtrum 0,05 U/h) und nie mehr als die Basalrate selbst. Gilt auch, wenn ein Unterzucker
-  vorhergesagt ist; nicht bei kaputten CGM-Daten.
-- Exercise Mode und Aktivitätserkennung: Der Activity Monitor ist bei jedem TT aus, also auch, wenn
-  Exercise wirkt – keine doppelte Senkung.
 
 All changes: [CHANGELOG-autoISF.md](CHANGELOG-autoISF.md)
 <!-- changelog:end -->
