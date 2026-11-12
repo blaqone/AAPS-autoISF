@@ -5,6 +5,29 @@ Testversion. Nur mit virtueller Pumpe oder im Open Loop testen.
 
 ---
 
+## 2026-11-12 (30) – Sport: AutoISF Sport-Modus (nur sport, im Test)
+
+- **Chip „Exercise“** auf dem Hauptbildschirm, neben dem Ziel (TT). Tippen öffnet „Start sport mode“:
+  **Szene wählen** (eine deiner Szenen mit hohem TT, die Wahl wird gemerkt) und **Dauer 30 / 60 / 90 min**.
+  Danach kommt die normale Szenen-Bestätigung (gleiche Schutzabfrage wie beim Szenen-Start).
+- **Solange die Sport-Szene läuft, stellt der Hauptbildschirm um** (Handy hochkant):
+  - Leiste oben: „Sport mode · noch … min“, **+15 / +30 / End**.
+  - Darunter das **Ergebnis von Half Basal** aus dem letzten Loop-Lauf: „Basal 55 %“. Ist „High temp target
+    raises sensitivity“ aus, steht dort in Rot: der Modus wirkt nicht auf die Dosierung.
+  - **Drei gleich große Kacheln: BZ | IOB | Ziel** (Ziel mit „bis 15:42“).
+  - Die kleine AutoISF-Zeile bleibt, darunter **große Knöpfe Kohlenhydrate | TT | Insulin** (Insulin außen), dann der Graph.
+  - Die normale Szenen-Leiste wird in dieser Ansicht nicht doppelt gezeigt.
+- **Verlängern +15 / +30:** Die Szene endet später, ihr TT wird ab jetzt bis zum neuen Ende neu gesetzt;
+  Profilwechsel, Loop-Modus und Careportal-Eintrag der Szene bekommen dasselbe neue Ende. Was du während der
+  Szene selbst geändert hast (z. B. ein anderes TT), bleibt unberührt. Nur am Haupt-Handy, nicht am Client.
+- **End** beendet die Szene wie bisher (mit Bestätigung).
+- **„Activity finished“:** Wenn die Sport-Szene endet (End, Zeit abgelaufen oder andere Szene), zeigt ein
+  Fenster Dauer, BZ am Anfang und Ende, niedrigsten BZ, Insulin (Bolus + SMB) und Kohlenhydrate in der Zeit.
+- Der Modus gilt als an, sobald die gewählte Sport-Szene läuft – auch wenn eine Automation sie startet.
+- **Keine neue Dosierungslogik:** Der Modus startet nur deine Szene; AutoISF rechnet mit dem TT wie immer
+  (Half Basal). „KH nötig“ wird bewusst nie gezeigt.
+- Im Querformat und auf dem Tablet bleibt die normale Ansicht.
+
 ## 2026-11-11 (29) – Update direkt von AutoISF 3.4.2.6 möglich
 
 Bisher ist die App beim Update über **AAPS 3.4.2.6 + AutoISF 3.2.1** bei jedem Start abgestürzt.

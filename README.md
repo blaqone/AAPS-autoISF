@@ -90,8 +90,12 @@ This is the **sport branch** (`aaps4-autoisf-sport`), my personal mode. It is th
   gives a small one – at least what the pump really gives (Dana 0.10 U/h, Medtrum 0.05 U/h), never more than
   the profile basal.
 
-All of them are in the AutoISF settings. ⚠ = can change the insulin given. Planned next: an activity mode
-with big buttons, extending running scenes, a summary after an activity.
+- **Sport mode**: an *Exercise* chip next to the target starts one of your scenes (with a high temp target)
+  for 30, 60 or 90 minutes. While it runs, the overview shows BG, IOB and target as big tiles, what half basal
+  makes of it ("Basal 55 %"), +15 / +30 / End, and big buttons for carbs, temp target and insulin. At the end a
+  short summary shows BG, insulin and carbs of the activity. It changes no dosing logic: it only starts the scene.
+
+The settings are in the AutoISF settings. ⚠ = can change the insulin given.
 
 ## Features
 
@@ -177,6 +181,29 @@ This program comes with ABSOLUTELY NO WARRANTY, to the extent permitted by appli
 
 The newest changes. ⚠ = this change can affect insulin dosing.
 
+### 2026-11-12 (30) – Sport: AutoISF Sport-Modus (nur sport, im Test)
+
+- **Chip „Exercise“** auf dem Hauptbildschirm, neben dem Ziel (TT). Tippen öffnet „Start sport mode“:
+  **Szene wählen** (eine deiner Szenen mit hohem TT, die Wahl wird gemerkt) und **Dauer 30 / 60 / 90 min**.
+  Danach kommt die normale Szenen-Bestätigung (gleiche Schutzabfrage wie beim Szenen-Start).
+- **Solange die Sport-Szene läuft, stellt der Hauptbildschirm um** (Handy hochkant):
+  - Leiste oben: „Sport mode · noch … min“, **+15 / +30 / End**.
+  - Darunter das **Ergebnis von Half Basal** aus dem letzten Loop-Lauf: „Basal 55 %“. Ist „High temp target
+    raises sensitivity“ aus, steht dort in Rot: der Modus wirkt nicht auf die Dosierung.
+  - **Drei gleich große Kacheln: BZ | IOB | Ziel** (Ziel mit „bis 15:42“).
+  - Die kleine AutoISF-Zeile bleibt, darunter **große Knöpfe Kohlenhydrate | TT | Insulin** (Insulin außen), dann der Graph.
+  - Die normale Szenen-Leiste wird in dieser Ansicht nicht doppelt gezeigt.
+- **Verlängern +15 / +30:** Die Szene endet später, ihr TT wird ab jetzt bis zum neuen Ende neu gesetzt;
+  Profilwechsel, Loop-Modus und Careportal-Eintrag der Szene bekommen dasselbe neue Ende. Was du während der
+  Szene selbst geändert hast (z. B. ein anderes TT), bleibt unberührt. Nur am Haupt-Handy, nicht am Client.
+- **End** beendet die Szene wie bisher (mit Bestätigung).
+- **„Activity finished“:** Wenn die Sport-Szene endet (End, Zeit abgelaufen oder andere Szene), zeigt ein
+  Fenster Dauer, BZ am Anfang und Ende, niedrigsten BZ, Insulin (Bolus + SMB) und Kohlenhydrate in der Zeit.
+- Der Modus gilt als an, sobald die gewählte Sport-Szene läuft – auch wenn eine Automation sie startet.
+- **Keine neue Dosierungslogik:** Der Modus startet nur deine Szene; AutoISF rechnet mit dem TT wie immer
+  (Half Basal). „KH nötig“ wird bewusst nie gezeigt.
+- Im Querformat und auf dem Tablet bleibt die normale Ansicht.
+
 ### 2026-11-11 (29) – Update direkt von AutoISF 3.4.2.6 möglich
 
 Bisher ist die App beim Update über **AAPS 3.4.2.6 + AutoISF 3.2.1** bei jedem Start abgestürzt.
@@ -235,15 +262,6 @@ Bisher ist die App beim Update über **AAPS 3.4.2.6 + AutoISF 3.2.1** bei jedem 
   vorhergesagt ist; nicht bei kaputten CGM-Daten.
 - Exercise Mode und Aktivitätserkennung: Der Activity Monitor ist bei jedem TT aus, also auch, wenn
   Exercise wirkt – keine doppelte Senkung.
-
-### 2026-11-11 (23) – Farbige BZ-Punkte jede Minute, Versionsprüfung aus
-
-- **Farbige BZ-Punkte jede Minute** (in dev getestet): Mit 1-Minuten-CGM und UKF-Glättung zeigt der
-  BZ-Graph jede Minute einen farbigen Punkt (geglätteter Wert), nicht nur alle 5 Minuten. Gilt mit jedem
-  APS. Reine Anzeige, die Berechnung bleibt auf dem 5-Minuten-Raster.
-- **Versionsprüfung aus:** Diese Version ist keine offizielle AAPS-Version. Die Prüfung hätte sie mit den
-  offiziellen Versionen verglichen und einige Zeit nach einer neuen offiziellen Version Max IOB auf 0
-  gesetzt („Anwendung abgelaufen“) – das hätte den geschlossenen Loop beendet.
 
 All changes: [CHANGELOG-autoISF.md](CHANGELOG-autoISF.md)
 <!-- changelog:end -->
