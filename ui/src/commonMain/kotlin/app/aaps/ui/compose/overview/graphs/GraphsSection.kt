@@ -1,5 +1,9 @@
 package app.aaps.ui.compose.overview.graphs
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -914,10 +918,22 @@ private fun SeriesLegend(seriesTypes: List<SeriesType>, modifier: Modifier = Mod
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Box(
+                val color = colors.colorFor(type)
+                // AutoISF fork: a dashed series gets a dashed swatch, so the legend looks like the line it names
+                if (type == SeriesType.IOB_TH_EFFECTIVE) Canvas(modifier = Modifier.size(width = 14.dp, height = 3.dp)) {
+                    drawLine(
+                        color = color,
+                        start = Offset(0f, size.height / 2),
+                        end = Offset(size.width, size.height / 2),
+                        strokeWidth = size.height,
+                        cap = StrokeCap.Round,
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(2.dp.toPx(), 2.dp.toPx()))
+                    )
+                }
+                else Box(
                     modifier = Modifier
                         .size(width = 14.dp, height = 3.dp)
-                        .background(colors.colorFor(type), RoundedCornerShape(50))
+                        .background(color, RoundedCornerShape(50))
                 )
                 Text(
                     text = stringResource(seriesShortNameId(type)),
