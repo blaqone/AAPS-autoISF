@@ -5,6 +5,17 @@ Testversion. Nur mit virtueller Pumpe oder im Open Loop testen.
 
 ---
 
+## 2026-11-12 (34) – Activity Classifier entfernt
+
+- ⚠ **Der Activity Classifier ist ganz entfernt** – Code, die Einstellungen „Use ActivityClassifier“,
+  „activity target offset“, „ActivityClassifier sensitivity“ und „Resting heart rate“ sowie die
+  Aktivitätserkennung des Handys (Gehen/Laufen/Rad), die nur er genutzt hat. Er gehörte nicht zu AutoISF 3.4
+  (kam mit der AAPS-4-Basis) und hat Ziel und SMB-Größe verändert.
+- Der **Activity Monitor** (Schritte, Original AutoISF) bleibt unverändert, ebenso der Schrittzähler des Handys
+  und die Uhr-Schritte.
+- Der letzte Stand des Classifiers liegt weiter auf GitHub im Zweig `fix/activity-classifier-steps`,
+  wird aber in keine Version eingebaut.
+
 ## 2026-11-12 (32) – Sport: iobTH-Legende, Classifier aus
 
 - **IOB-Graph:** In der Legende ist iobTH jetzt gestrichelt wie seine Linie und hellviolett statt hellblau –

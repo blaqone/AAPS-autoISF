@@ -181,6 +181,17 @@ This program comes with ABSOLUTELY NO WARRANTY, to the extent permitted by appli
 
 The newest changes. ⚠ = this change can affect insulin dosing.
 
+### 2026-11-12 (34) – Activity Classifier entfernt
+
+- ⚠ **Der Activity Classifier ist ganz entfernt** – Code, die Einstellungen „Use ActivityClassifier“,
+  „activity target offset“, „ActivityClassifier sensitivity“ und „Resting heart rate“ sowie die
+  Aktivitätserkennung des Handys (Gehen/Laufen/Rad), die nur er genutzt hat. Er gehörte nicht zu AutoISF 3.4
+  (kam mit der AAPS-4-Basis) und hat Ziel und SMB-Größe verändert.
+- Der **Activity Monitor** (Schritte, Original AutoISF) bleibt unverändert, ebenso der Schrittzähler des Handys
+  und die Uhr-Schritte.
+- Der letzte Stand des Classifiers liegt weiter auf GitHub im Zweig `fix/activity-classifier-steps`,
+  wird aber in keine Version eingebaut.
+
 ### 2026-11-12 (32) – Sport: iobTH-Legende, Classifier aus
 
 - **IOB-Graph:** In der Legende ist iobTH jetzt gestrichelt wie seine Linie und hellviolett statt hellblau –
@@ -245,22 +256,6 @@ Bisher ist die App beim Update über **AAPS 3.4.2.6 + AutoISF 3.2.1** bei jedem 
 - Die übrige Historie bleibt erhalten. Vorher trotzdem **Einstellungen exportieren**; gleicher
   Signaturschlüssel nötig. Zurück auf 3.4 geht nicht ohne Verlust der Datenbank.
 - Am besten zuerst auf einem **Zweithandy** testen.
-
-### 2026-11-11 (27) – Sport: Fixe aus dev übernommen (nur sport)
-
-- ⚠ **Activity Classifier:** nimmt die Summe der Schritte der letzten 15 Minuten (vorher nur einen
-  5-Minuten-Block von vor 10–15 min). Neue Einstellung **„ActivityClassifier sensitivity“**:
-  hoch 450/90, **mittel 600/45 (Standard)**, niedrig 750/30 (Schritte in 15 min für Ausdauer / Grenze
-  für Kraftsport). Die Schritte kommen aus derselben Quelle wie beim Activity Monitor (Handy oder Uhr).
-- **IOB-Graph:** Legende für IOB und iobTH, wenn iobTH eingeschaltet ist. iobTH ist nur noch im
-  IOB-Graph wählbar, nicht mehr in den Graphen 2–5.
-- **Automation „Schritte“ (AAPS #5499 von Milos):** liest die neueste Zeile, löst also auch mit
-  Handy-Schritten aus. Von der Wear-Uhr sind 10 und 15 min jetzt Summen. **Eigene Automationen mit
-  Schritten bitte prüfen.**
-- **Logdateien** in `Documents/aapsLogs` wie bei AutoISF 3.4 (stündliches Zip, 30 Tage).
-- ⚠ **Uhr-Schritte, Wear OS:** Eine Wear-Uhr schreibt 6 Zeilen gleichzeitig. Jetzt zählt nur die neueste
-  und längste davon, also nichts doppelt – auch mit einer älteren Wear-App.
-- Activity Monitor selbst unverändert (Grenzen wie im Original AutoISF).
 
 All changes: [CHANGELOG-autoISF.md](CHANGELOG-autoISF.md)
 <!-- changelog:end -->
