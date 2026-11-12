@@ -232,7 +232,10 @@ fun GraphsSection(
     iobText: String? = null,
     cobText: String? = null,
     /** Height of the bars drawn over the end of this section (the overview's preview mode), added to the space at its end. */
-    overlaidBarsHeight: Dp = 0.dp
+    overlaidBarsHeight: Dp = 0.dp,
+    /** AutoISF fork (sport mode): only the BG graph, then [belowBgGraph] instead of the other graphs. */
+    bgOnly: Boolean = false,
+    belowBgGraph: @Composable () -> Unit = {}
 ) {
     val dateUtil = LocalDateUtil.current
     val savedGraphConfig by graphViewModel.graphConfigFlow.collectAsStateWithLifecycle()
@@ -648,6 +651,8 @@ fun GraphsSection(
                 onDismiss = { editingBgOverlays = false }
             )
         }
+        if (bgOnly) belowBgGraph()
+        else {
         // Fixed IOB graph (Graph 1) with optional Activity overlay
         var editingIobOverlays by remember { mutableStateOf(false) }
         Box(
@@ -851,6 +856,7 @@ fun GraphsSection(
                     showAddSheet = false
                 }
             )
+        }
         }
         // Spacer so the last graph / Add button isn't covered by QuickLaunch toolbar
         Spacer(Modifier.height(48.dp + overlaidBarsHeight))

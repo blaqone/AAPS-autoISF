@@ -30,12 +30,6 @@ interface SceneActions {
     /** End the active scene; [triggerChain] = also fire its configured chain target (master derives it). */
     suspend fun stop(triggerChain: Boolean = false): ActionProgress
 
-    /**
-     * AutoISF fork (sport mode): move the end of the active, timed scene [minutes] later, together with the
-     * records it made. Master only; a client gets [ActionProgress.Rejected].
-     */
-    suspend fun extend(minutes: Int): ActionProgress
-
     /** Validation gate for activating [scene] (pump/loop/profile/actions); null = OK, else a reason. */
     suspend fun validateActivation(scene: Scene): String?
 }

@@ -103,7 +103,7 @@ autoisf_parabola_min_minutes|IntKey|true
 autoisf_parabola_smoothed|BooleanKey|true
 autoisf_smb_threshold_enabled|BooleanKey|true
 autoisf_smb_threshold|UnitDoubleKey|true
-autoisf_sport_scene_id|StringNonKey|true
+autoisf_sport_mode_start|LongNonKey|false
 autoisf_use_activity_classifier|BooleanKey|true
 autoisf_use_activity_target_offset|BooleanKey|true
 automation_state_service|StringNonKey|true

@@ -21,6 +21,8 @@ enum class LongNonKey(
      */
     ActivePumpChangeTimestamp("active_pump_change_timestamp", 0L, exportable = false),
     AppStart("app_start_time", 0L),
+    // AutoISF fork (sport mode): when the Exercise chip switched half basal on, 0 = sport mode off
+    AutoIsfSportModeStart("autoisf_sport_mode_start", 0L, exportable = false),
     LastCleanupRun("last_cleanup_run", 0L),
     /**
      * The time before which the last automatic cleanup deleted records. `PeriodicMaintenance` lets

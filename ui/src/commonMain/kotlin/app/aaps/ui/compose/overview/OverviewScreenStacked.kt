@@ -83,7 +83,7 @@ fun OverviewScreenStacked(
     /** AutoISF fork (sport mode): null = no sport mode (previews, tests). */
     sportMode: SportModeUiState? = null,
     onExerciseClick: (() -> Unit)? = null,
-    onSportExtend: (minutes: Int) -> Unit = {},
+    onSportEnd: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val config = LocalConfig.current
@@ -103,8 +103,7 @@ fun OverviewScreenStacked(
             .verticalScroll(rememberScrollState())
     ) {
         val sportActive = sportMode?.active == true
-        // In the sport view its own bar replaces the scene bar: it has the time left and End as well
-        if (!sportActive) ActiveSceneBanner(
+        ActiveSceneBanner(
             activeState = activeSceneState,
             expired = sceneExpired,
             chainTargetName = activeSceneChainTargetName,
@@ -119,9 +118,8 @@ fun OverviewScreenStacked(
             bgInfo = bgInfoState.bgInfo,
             iobText = iobUiState.text,
             targetText = tempTargetText,
-            onExtend = onSportExtend,
-            onEnd = onEndScene,
-            controlsEnabled = endSceneEnabled
+            onEnd = onSportEnd,
+            controlsEnabled = commandsAllowed
         ) else Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -169,14 +167,15 @@ fun OverviewScreenStacked(
             )
         }
 
-        AutoIsfChip(
+        // AutoISF fork (sport mode): only the BG graph and the big buttons, so the rest goes
+        if (!sportActive) AutoIsfChip(
             state = autoIsfFactorsUiState,
             onNavigate = onNavigate,
             onExpandedChange = chipsViewModel::setAutoIsfChipExpanded,
             onTogglePin = chipsViewModel::toggleAutoIsfPin
         )
 
-        OverviewStatusSection(
+        if (!sportActive) OverviewStatusSection(
             sensorStatus = statusState.sensorStatus,
             insulinStatus = statusState.insulinStatus,
             cannulaStatus = statusState.cannulaStatus,
@@ -190,7 +189,7 @@ fun OverviewScreenStacked(
             onExpandedChange = { statusExpanded = it }
         )
 
-        if (config.AAPSCLIENT) {
+        if (config.AAPSCLIENT && !sportActive) {
             val nsClientStatus by graphViewModel.nsClientStatusFlow.collectAsStateWithLifecycle()
             val flavorTint = when {
                 config.AAPSCLIENT3 -> AapsTheme.generalColors.flavorClient3Tint
@@ -203,16 +202,18 @@ fun OverviewScreenStacked(
             )
         }
 
-        if (sportActive) SportModeButtons(
-            onCarbs = { onNavigate(NavigationRequest.Element(ElementType.CARBS)) },
-            onTempTarget = { onNavigate(NavigationRequest.Element(ElementType.TEMP_TARGET_MANAGEMENT)) },
-            onInsulin = { onNavigate(NavigationRequest.Element(ElementType.INSULIN)) },
-            enabled = commandsAllowed
-        )
-
         GraphsSection(
             graphViewModel = graphViewModel, isSimpleMode = isSimpleMode, iobText = iobUiState.text, cobText = cobUiState.text,
-            overlaidBarsHeight = overlaidBarsHeight
+            overlaidBarsHeight = overlaidBarsHeight,
+            bgOnly = sportActive,
+            belowBgGraph = {
+                SportModeButtons(
+                    onCarbs = { onNavigate(NavigationRequest.Element(ElementType.CARBS)) },
+                    onTempTarget = { onNavigate(NavigationRequest.Element(ElementType.TEMP_TARGET_MANAGEMENT)) },
+                    onInsulin = { onNavigate(NavigationRequest.Element(ElementType.INSULIN)) },
+                    enabled = commandsAllowed
+                )
+            }
         )
     }
 }

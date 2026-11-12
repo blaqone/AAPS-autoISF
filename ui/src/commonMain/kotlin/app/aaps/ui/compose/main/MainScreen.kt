@@ -1,7 +1,6 @@
 package app.aaps.ui.compose.main
 
 import app.aaps.ui.compose.sportMode.SportModeViewModel
-import app.aaps.ui.compose.sportMode.SportModeStartDialog
 import app.aaps.ui.compose.sportMode.SportSummaryDialog
 import app.aaps.core.ui.compose.metroViewModel
 import androidx.compose.animation.AnimatedVisibility
@@ -257,7 +256,6 @@ fun MainScreen(
                 val sportModeViewModel: SportModeViewModel = metroViewModel()
                 val sportMode by sportModeViewModel.uiState.collectAsStateWithLifecycle()
                 val sportSummary by sportModeViewModel.summary.collectAsStateWithLifecycle()
-                var showSportStart by remember { mutableStateOf(false) }
                 val sceneExpired by mainViewModel.sceneExpired.collectAsStateWithLifecycle()
                 val activeSceneChainTargetName by mainViewModel.activeSceneChainTargetName.collectAsStateWithLifecycle()
                 val eatReminderState by mainViewModel.eatReminderState.collectAsStateWithLifecycle()
@@ -329,17 +327,8 @@ fun MainScreen(
                         isPumpCommunicating = isPumpCommunicating,
                         onStopBolus = onStopBolus,
                         sportMode = sportMode,
-                        onExerciseClick = { showSportStart = true },
-                        onSportExtend = sportModeViewModel::extend
-                    )
-                    if (showSportStart) SportModeStartDialog(
-                        scenes = sportModeViewModel.scenes(),
-                        preselectedId = sportModeViewModel.lastSceneId(),
-                        onStart = { sceneId, minutes ->
-                            showSportStart = false
-                            sportModeViewModel.start(sceneId, minutes)
-                        },
-                        onDismiss = { showSportStart = false }
+                        onExerciseClick = sportModeViewModel::start,
+                        onSportEnd = sportModeViewModel::end
                     )
                     sportSummary?.let { lines -> SportSummaryDialog(lines = lines, onDismiss = sportModeViewModel::dismissSummary) }
 
@@ -430,6 +419,8 @@ fun MainScreen(
                                 }
                             },
                             onPreferencesClick = { onNavigate(NavigationRequest.Element(ElementType.SETTINGS)) },
+                            // AutoISF fork: no search field in the sport view
+                            showSearch = !sportMode.active,
                             onSearchQueryChange = onSearchQueryChange,
                             onSearchClear = onSearchClear,
                             onSearchActiveChange = onSearchActiveChange,

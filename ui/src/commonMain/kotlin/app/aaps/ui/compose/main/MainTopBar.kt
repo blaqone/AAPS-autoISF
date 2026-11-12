@@ -45,6 +45,8 @@ fun MainTopBar(
     onSearchClear: () -> Unit,
     onSearchActiveChange: (Boolean) -> Unit,
     isSimpleMode: Boolean = false,
+    /** AutoISF fork (sport mode): false hides the search field, menu and settings stay. */
+    showSearch: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     TopAppBar(
@@ -53,7 +55,7 @@ fun MainTopBar(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(end = 8.dp)
             ) {
-                M3SearchBar(
+                if (showSearch) M3SearchBar(
                     query = searchUiState.query,
                     isActive = searchUiState.isSearchActive,
                     onQueryChange = onSearchQueryChange,

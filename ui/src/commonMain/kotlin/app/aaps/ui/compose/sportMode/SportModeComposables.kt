@@ -13,22 +13,14 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -71,62 +63,9 @@ fun ExerciseChip(onClick: () -> Unit, modifier: Modifier = Modifier) {
     }
 }
 
-/** Pick the scene and the duration, then start. */
-@Composable
-fun SportModeStartDialog(
-    scenes: List<SportSceneOption>,
-    preselectedId: String?,
-    onStart: (sceneId: String, minutes: Int) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var sceneId by remember { mutableStateOf(preselectedId ?: scenes.firstOrNull()?.id) }
-    var minutes by remember { mutableIntStateOf(60) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = { Icon(IcTtActivity, contentDescription = null, tint = sportColor()) },
-        title = { Text(stringResource(CoreUiStrings.sport_mode_start_title)) },
-        text = {
-            if (scenes.isEmpty()) Text(stringResource(CoreUiStrings.sport_mode_no_scenes))
-            else Column {
-                Text(stringResource(CoreUiStrings.sport_mode_scene), style = MaterialTheme.typography.titleSmall)
-                scenes.forEach { scene ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .selectable(selected = scene.id == sceneId, role = Role.RadioButton, onClick = { sceneId = scene.id })
-                    ) {
-                        RadioButton(selected = scene.id == sceneId, onClick = null)
-                        Spacer(Modifier.width(AapsSpacing.medium))
-                        Text(scene.name)
-                    }
-                }
-                Spacer(Modifier.padding(top = AapsSpacing.medium))
-                Text(stringResource(CoreUiStrings.sport_mode_duration), style = MaterialTheme.typography.titleSmall)
-                Row(horizontalArrangement = Arrangement.spacedBy(AapsSpacing.medium)) {
-                    listOf(30, 60, 90).forEach { m ->
-                        FilterChip(
-                            selected = minutes == m,
-                            onClick = { minutes = m },
-                            label = { Text(stringResource(CoreUiStrings.format_mins, m)) }
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            val id = sceneId
-            TextButton(enabled = id != null, onClick = { if (id != null) onStart(id, minutes) }) {
-                Text(stringResource(CoreUiStrings.sport_mode_start))
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(CoreUiStrings.cancel)) } }
-    )
-}
-
 /**
- * The sport view at the top of the overview while the sport scene runs: the bar with the time left, what the
- * loop makes of it (half basal), +15 / +30 / End, and BG | IOB | target as tiles of the same size.
+ * The sport view at the top of the overview while half basal is on: the bar with what the loop makes of it
+ * (basal in percent and per hour, the temp basal now) and End, then BG | IOB | target as tiles of the same size.
  */
 @Composable
 fun SportModeHeader(
@@ -134,7 +73,6 @@ fun SportModeHeader(
     bgInfo: BgInfoData?,
     iobText: String,
     targetText: String,
-    onExtend: (minutes: Int) -> Unit,
     onEnd: () -> Unit,
     controlsEnabled: Boolean,
     modifier: Modifier = Modifier
@@ -151,26 +89,38 @@ fun SportModeHeader(
                 Icon(IcTtActivity, contentDescription = null, tint = color, modifier = Modifier.size(AapsSpacing.chipIconSize))
                 Spacer(Modifier.width(AapsSpacing.small))
                 Text(
-                    stringResource(CoreUiStrings.sport_mode_bar, state.remainingText),
+                    stringResource(CoreUiStrings.sport_mode_half_basal_on),
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.weight(1f)
                 )
-                TextButton(enabled = controlsEnabled, onClick = { onExtend(15) }) { Text(stringResource(CoreUiStrings.sport_mode_extend_15)) }
-                TextButton(enabled = controlsEnabled, onClick = { onExtend(30) }) { Text(stringResource(CoreUiStrings.sport_mode_extend_30)) }
-                TextButton(enabled = controlsEnabled, onClick = onEnd) { Text(stringResource(CoreUiStrings.sport_mode_end)) }
+                FilledTonalButton(enabled = controlsEnabled, onClick = onEnd) { Text(stringResource(CoreUiStrings.sport_mode_end)) }
             }
-            when {
-                state.noEffect           -> Text(
-                    stringResource(CoreUiStrings.sport_mode_no_effect),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
+            if (state.highTarget && state.basalPercent != null) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = AapsSpacing.small)) {
+                    Text(
+                        stringResource(CoreUiStrings.sport_mode_basal, state.basalPercent),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = color,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (state.basalRate != null && state.profileRate != null)
+                        Text(stringResource(CoreUiStrings.sport_mode_basal_rate, state.basalRate, state.profileRate), style = MaterialTheme.typography.bodyMedium)
+                }
+            } else Text(
+                stringResource(CoreUiStrings.sport_mode_waits_for_tt),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = AapsSpacing.small)
+            )
+            Row(modifier = Modifier.padding(top = AapsSpacing.extraSmall)) {
+                Text(
+                    state.tbrNow?.let { stringResource(CoreUiStrings.sport_mode_tbr_now, it) } ?: "",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f)
                 )
-
-                state.basalPercent != null -> Text(
-                    stringResource(CoreUiStrings.sport_mode_basal, state.basalPercent),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = color
-                )
+                state.since?.let {
+                    Text(stringResource(CoreUiStrings.sport_mode_since, it), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
         Row(
@@ -187,12 +137,7 @@ fun SportModeHeader(
                 strike = bgInfo?.isOutdated == true
             )
             SportTile(label = stringResource(CoreUiStrings.iob), value = iobText, sub = null, valueColor = MaterialTheme.colorScheme.onSurface)
-            SportTile(
-                label = stringResource(CoreUiStrings.sport_mode_target),
-                value = targetText,
-                sub = state.endClock?.let { stringResource(CoreUiStrings.sport_mode_target_until, it) },
-                valueColor = color
-            )
+            SportTile(label = stringResource(CoreUiStrings.sport_mode_target), value = targetText, sub = null, valueColor = color)
         }
     }
 }

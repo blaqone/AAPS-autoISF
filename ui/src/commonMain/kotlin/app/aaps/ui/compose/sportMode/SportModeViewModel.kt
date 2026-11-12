@@ -3,32 +3,26 @@ package app.aaps.ui.compose.sportMode
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import app.aaps.core.data.model.ActiveSceneState
+import app.aaps.core.data.configuration.Constants
 import app.aaps.core.data.model.BS
-import app.aaps.core.data.model.SceneLifecycle
 import app.aaps.core.interfaces.InterfacesStrings
 import app.aaps.core.interfaces.aps.Loop
 import app.aaps.core.interfaces.aps.RT
-import app.aaps.core.interfaces.clientcontrol.ActionProgress
 import app.aaps.core.interfaces.db.PersistenceLayer
+import app.aaps.core.interfaces.db.ProcessedTbrEbData
 import app.aaps.core.interfaces.navigation.ElementType
+import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.protection.ProtectionCheck
 import app.aaps.core.interfaces.protection.ProtectionResult
 import app.aaps.core.interfaces.resources.TextResolver
-import app.aaps.core.interfaces.rx.bus.RxBus
-import app.aaps.core.interfaces.rx.events.EventShowDialog
-import app.aaps.core.interfaces.scenes.ActiveSceneSync
-import app.aaps.core.interfaces.scenes.SceneActions
-import app.aaps.core.interfaces.scenes.SceneStore
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.keys.BooleanKey
-import app.aaps.core.keys.StringNonKey
+import app.aaps.core.keys.LongNonKey
 import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.objects.extensions.convertedToAbsolute
 import app.aaps.core.ui.CoreUiStrings
-import app.aaps.core.ui.clientcontrol.failText
 import app.aaps.core.ui.compose.formatMinutesAsDuration
-import app.aaps.core.ui.compose.navigation.icon
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoMap
 import dev.zacsweers.metro.Inject
@@ -42,25 +36,26 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-/** A scene the sport mode can start. */
-data class SportSceneOption(val id: String, val name: String, val defaultMinutes: Int)
-
 /**
  * The sport mode as the overview shows it.
- * [active]: the sport scene runs. [remainingText] and [endClock]: time left and end of the scene.
- * [basalPercent]: what the loop makes of the high temp target (half basal), from its last run.
- * [noEffect]: "High temp target raises sensitivity" is off, so the temp target does not change the insulin.
+ * [active]: the Exercise chip switched half basal on and it is still on.
+ * [highTarget]: a temp target above the normal target runs, so half basal works now.
+ * [basalPercent], [basalRate], [profileRate]: what the loop makes of it (half basal), from its last run.
+ * [tbrNow]: the temp basal that runs now, if any. [since]: clock time the mode was switched on.
  */
 data class SportModeUiState(
     val active: Boolean = false,
-    val remainingText: String = "",
-    val endClock: String? = null,
+    val highTarget: Boolean = false,
     val basalPercent: Int? = null,
-    val noEffect: Boolean = false
+    val basalRate: String? = null,
+    val profileRate: String? = null,
+    val tbrNow: String? = null,
+    val since: String? = null
 )
 
 /** One line of the summary after the activity: a label and its value, both ready to show. */
@@ -69,9 +64,9 @@ data class SportSummaryLine(val label: String, val value: String)
 /**
  * AutoISF fork: the sport mode of the sport version.
  *
- * It starts the sport scene the user picked, with the duration picked, and the overview then shows the sport
- * view while that scene runs. It changes no dosing logic: the scene sets the temp target (and what else it has),
- * and AutoISF works with it as with any temp target, half basal included.
+ * The Exercise chip switches the AutoISF setting "High temp target raises sensitivity" (half basal) on, the
+ * overview then shows the sport view, and End switches it off again. The temp target is set by the user as
+ * always. Nothing else changes: AutoISF calculates with the setting as when it is switched on in the settings.
  */
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 @ViewModelKey
@@ -79,16 +74,14 @@ data class SportSummaryLine(val label: String, val value: String)
 @Inject
 class SportModeViewModel(
     private val preferences: Preferences,
-    private val sceneStore: SceneStore,
-    private val sceneActions: SceneActions,
-    private val activeSceneSync: ActiveSceneSync,
     private val protectionCheck: ProtectionCheck,
     private val persistenceLayer: PersistenceLayer,
+    private val processedTbrEbData: ProcessedTbrEbData,
+    private val profileFunction: ProfileFunction,
     private val loop: Loop,
     private val profileUtil: ProfileUtil,
     private val dateUtil: DateUtil,
     private val rh: TextResolver,
-    private val rxBus: RxBus,
     private val appScope: CoroutineScope
 ) : ViewModel() {
 
@@ -99,91 +92,53 @@ class SportModeViewModel(
         }
     }
 
-    val uiState: StateFlow<SportModeUiState> = combine(activeSceneSync.activeSceneState, ticker) { state, _ -> buildState(state) }
+    val uiState: StateFlow<SportModeUiState> = combine(preferences.observe(LongNonKey.AutoIsfSportModeStart), ticker) { start, _ -> start }
+        .map { start -> buildState(start) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000L), SportModeUiState())
 
     private val _summary = MutableStateFlow<List<SportSummaryLine>?>(null)
 
-    /** The summary after the sport scene ended, or null. */
+    /** The summary after the sport mode ended, or null. */
     val summary: StateFlow<List<SportSummaryLine>?> = _summary.asStateFlow()
 
-    init {
-        // When the sport scene ends (end, expiry or another scene), show what happened during it
-        viewModelScope.launch {
-            var last: ActiveSceneState? = null
-            activeSceneSync.activeSceneState.collect { state ->
-                val previous = last
-                if (previous != null && previous.lifecycle == SceneLifecycle.ACTIVE && isSportScene(previous) &&
-                    (state == null || state.lifecycle != SceneLifecycle.ACTIVE || state.activatedAt != previous.activatedAt)
-                ) _summary.value = buildSummary(previous)
-                last = state
-            }
-        }
-    }
-
-    private fun isSportScene(state: ActiveSceneState): Boolean {
-        val id = preferences.get(StringNonKey.AutoIsfSportSceneId)
-        return id.isNotEmpty() && state.scene.id == id
-    }
-
-    private fun buildState(state: ActiveSceneState?): SportModeUiState {
-        if (state == null || state.lifecycle != SceneLifecycle.ACTIVE || !isSportScene(state)) return SportModeUiState()
+    private suspend fun buildState(start: Long): SportModeUiState {
+        // Switched off in the settings meanwhile: the sport mode is over as well
+        if (start <= 0L || !preferences.get(BooleanKey.ApsAutoIsfHighTtRaisesSens)) return SportModeUiState()
         val now = dateUtil.now()
+        val profile = profileFunction.getProfile()
+        val tt = persistenceLayer.getTemporaryTargetActiveAt(now)
+        val highTarget = tt != null && tt.lowTarget > Constants.NORMAL_TARGET_MGDL
         val ratio = (loop.lastRun?.request?.rawData() as? RT)?.sensitivityRatio
+        val profileBasal = profile?.getBasal()
+        val tbr = profile?.let { p -> processedTbrEbData.getTempBasalIncludingConvertedExtended(now)?.convertedToAbsolute(now, p) }
         return SportModeUiState(
             active = true,
-            remainingText = state.remainingMs(now)?.let { dateUtil.timeRemainingString(it, rh) } ?: "",
-            endClock = state.endsAt?.let { dateUtil.timeString(it) },
-            basalPercent = ratio?.let { (it * 100).roundToInt() },
-            noEffect = !preferences.get(BooleanKey.ApsAutoIsfHighTtRaisesSens)
+            highTarget = highTarget,
+            basalPercent = if (highTarget) ratio?.let { (it * 100).roundToInt() } else null,
+            basalRate = if (highTarget && ratio != null && profileBasal != null) rh.gs(CoreUiStrings.pump_base_basal_rate, profileBasal * ratio) else null,
+            profileRate = profileBasal?.let { rh.gs(CoreUiStrings.pump_base_basal_rate, it) },
+            tbrNow = tbr?.let { rh.gs(CoreUiStrings.pump_base_basal_rate, it) },
+            since = dateUtil.timeString(start)
         )
     }
 
-    /** The scenes to choose from, the enabled ones. */
-    fun scenes(): List<SportSceneOption> =
-        sceneStore.getScenes().filter { it.isEnabled }.map { SportSceneOption(it.id, it.name, it.defaultDurationMinutes) }
-
-    /** The scene picked last time, if it still exists. */
-    fun lastSceneId(): String? = preferences.get(StringNonKey.AutoIsfSportSceneId).takeIf { id -> scenes().any { it.id == id } }
-
-    /**
-     * Starts [sceneId] for [minutes] as the sport scene. Asks for the same protection as starting a scene, and the
-     * master's confirmation of what the scene does comes before anything happens.
-     */
-    fun start(sceneId: String, minutes: Int) {
-        preferences.put(StringNonKey.AutoIsfSportSceneId, sceneId)
-        protectionCheck.requestProtection(ElementType.SCENE.protection) { result ->
-            if (result == ProtectionResult.GRANTED) prepareStart(sceneId, minutes)
-        }
-    }
-
-    private fun prepareStart(sceneId: String, minutes: Int) {
-        val title = rh.gs(CoreUiStrings.sport_mode_start_title)
-        viewModelScope.launch {
-            when (val prepared = sceneActions.prepareStart(sceneId, minutes)) {
-                is ActionProgress.Prepared ->
-                    rxBus.send(
-                        EventShowDialog.OkCancel(
-                            title = title, message = "", confirmationLines = prepared.lines, icon = ElementType.SCENE.icon(),
-                            onOk = { appScope.launch { sceneActions.commitStart(prepared.id) } }
-                        )
-                    )
-
-                is ActionProgress.Rejected -> rxBus.send(EventShowDialog.Ok(title = title, message = prepared.detail ?: rh.gs(prepared.reason.failText())))
-                else                       -> Unit
-            }
-        }
-    }
-
-    /** Moves the end of the sport scene [minutes] later, with its temp target. */
-    fun extend(minutes: Int) {
-        protectionCheck.requestProtection(ElementType.SCENE.protection) { result ->
+    /** The Exercise chip: half basal on. Asks for the same protection as a temp target. */
+    fun start() {
+        protectionCheck.requestProtection(ElementType.TEMP_TARGET_MANAGEMENT.protection) { result ->
             if (result != ProtectionResult.GRANTED) return@requestProtection
-            appScope.launch {
-                val progress = sceneActions.extend(minutes)
-                if (progress is ActionProgress.Rejected)
-                    rxBus.send(EventShowDialog.Ok(title = rh.gs(CoreUiStrings.sport_mode_title), message = progress.detail ?: rh.gs(progress.reason.failText())))
-            }
+            preferences.put(BooleanKey.ApsAutoIsfHighTtRaisesSens, true)
+            preferences.put(LongNonKey.AutoIsfSportModeStart, dateUtil.now())
+        }
+    }
+
+    /** End: half basal off, then the summary of the time it was on. */
+    fun end() {
+        protectionCheck.requestProtection(ElementType.TEMP_TARGET_MANAGEMENT.protection) { result ->
+            if (result != ProtectionResult.GRANTED) return@requestProtection
+            val start = preferences.get(LongNonKey.AutoIsfSportModeStart)
+            preferences.put(BooleanKey.ApsAutoIsfHighTtRaisesSens, false)
+            preferences.put(LongNonKey.AutoIsfSportModeStart, 0L)
+            if (start > 0L) appScope.launch { _summary.value = buildSummary(start, dateUtil.now()) }
         }
     }
 
@@ -191,9 +146,7 @@ class SportModeViewModel(
         _summary.value = null
     }
 
-    private suspend fun buildSummary(state: ActiveSceneState): List<SportSummaryLine> {
-        val start = state.activatedAt
-        val end = minOf(dateUtil.now(), state.endsAt ?: Long.MAX_VALUE)
+    private suspend fun buildSummary(start: Long, end: Long): List<SportSummaryLine> {
         val readings = persistenceLayer.getBgReadingsDataFromTimeToTime(start - 10 * 60_000L, end, true).filter { it.isValid }
         val bgStart = readings.lastOrNull { it.timestamp <= start } ?: readings.firstOrNull()
         val bgEnd = readings.lastOrNull()

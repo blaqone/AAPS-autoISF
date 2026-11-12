@@ -4,7 +4,6 @@ import app.aaps.core.data.model.Scene
 import app.aaps.core.interfaces.clientcontrol.ActionProgress
 import app.aaps.core.interfaces.clientcontrol.ClientControlActionDispatcher
 import app.aaps.core.interfaces.clientcontrol.FailureReason
-import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.resources.TextResolver
 import app.aaps.core.interfaces.scenes.SceneActions
 import app.aaps.core.interfaces.scenes.SceneAutomationApi
@@ -30,8 +29,7 @@ class SceneActionsImpl(
     private val roleBranch: RoleBranch,
     private val sceneApi: SceneAutomationApi,
     private val sceneExecutor: SceneExecutor,
-    private val rh: TextResolver,
-    private val config: Config
+    private val rh: TextResolver
 ) : SceneActions {
 
     override suspend fun validateActivation(scene: Scene): String? = sceneExecutor.validateActivation(scene)
@@ -53,13 +51,6 @@ class SceneActionsImpl(
             ClientControlActionDispatcher.Command.SceneStop(triggerChain),
             rh.gs(CoreUiStrings.clientcontrol_action_deactivate_scene)
         ) { (if (triggerChain) sceneApi.stopActiveSceneAndChain() else sceneApi.stopActiveScene()).toProgress() }
-
-    override suspend fun extend(minutes: Int): ActionProgress {
-        // The scene runs on the master; a client would only move its own copy, which the next sync undoes
-        if (config.AAPSCLIENT) return ActionProgress.Rejected(FailureReason.ExecutionFailed, rh.gs(CoreUiStrings.sport_mode_extend_master_only))
-        val result = sceneExecutor.extend(minutes)
-        return if (result.success) ActionProgress.Applied else ActionProgress.Rejected(FailureReason.ExecutionFailed, result.errorMessage)
-    }
 
     // Master-side mapping only (the client path's terminal comes from the master's ACK).
     private fun SceneAutomationResult.toProgress(): ActionProgress = when (this) {
