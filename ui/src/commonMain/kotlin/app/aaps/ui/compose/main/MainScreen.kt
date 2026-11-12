@@ -1,5 +1,9 @@
 package app.aaps.ui.compose.main
 
+import app.aaps.ui.compose.sportMode.SportModeViewModel
+import app.aaps.ui.compose.sportMode.SportModeStartDialog
+import app.aaps.ui.compose.sportMode.SportSummaryDialog
+import app.aaps.core.ui.compose.metroViewModel
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -249,6 +253,11 @@ fun MainScreen(
                 }
 
                 val activeSceneState by mainViewModel.activeSceneState.collectAsStateWithLifecycle()
+                // AutoISF fork: the sport mode of the sport version
+                val sportModeViewModel: SportModeViewModel = metroViewModel()
+                val sportMode by sportModeViewModel.uiState.collectAsStateWithLifecycle()
+                val sportSummary by sportModeViewModel.summary.collectAsStateWithLifecycle()
+                var showSportStart by remember { mutableStateOf(false) }
                 val sceneExpired by mainViewModel.sceneExpired.collectAsStateWithLifecycle()
                 val activeSceneChainTargetName by mainViewModel.activeSceneChainTargetName.collectAsStateWithLifecycle()
                 val eatReminderState by mainViewModel.eatReminderState.collectAsStateWithLifecycle()
@@ -318,8 +327,21 @@ fun MainScreen(
                         pumpStatusText = pumpStatusText,
                         queueStatusText = queueStatusText,
                         isPumpCommunicating = isPumpCommunicating,
-                        onStopBolus = onStopBolus
+                        onStopBolus = onStopBolus,
+                        sportMode = sportMode,
+                        onExerciseClick = { showSportStart = true },
+                        onSportExtend = sportModeViewModel::extend
                     )
+                    if (showSportStart) SportModeStartDialog(
+                        scenes = sportModeViewModel.scenes(),
+                        preselectedId = sportModeViewModel.lastSceneId(),
+                        onStart = { sceneId, minutes ->
+                            showSportStart = false
+                            sportModeViewModel.start(sceneId, minutes)
+                        },
+                        onDismiss = { showSportStart = false }
+                    )
+                    sportSummary?.let { lines -> SportSummaryDialog(lines = lines, onDismiss = sportModeViewModel::dismissSummary) }
 
                     // Search results overlay
                     if (searchUiState.isSearchActive) {

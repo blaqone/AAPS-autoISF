@@ -81,6 +81,8 @@ enum class StringNonKey(
 
     // AutoISF fork: which AutoISF values the closed AutoISF chip on the overview shows, comma separated keys.
     OverviewAutoIsfChipPinned("overview_autoisf_chip_pinned", "final,iobth"),
+    // AutoISF fork (sport mode): the id of the scene the sport mode starts; the mode is on while this scene runs
+    AutoIsfSportSceneId("autoisf_sport_scene_id", ""),
     // The tab the Statistics screen opens on: the last one used (per-device UI state, not a user-facing preference)
     StatsTab(key = "stats_tab", defaultValue = "", exportable = false),
 

@@ -26,6 +26,7 @@ import app.aaps.ui.compose.overview.chips.RunningModeChip
 import app.aaps.ui.compose.overview.chips.SensitivityUiState
 import app.aaps.ui.compose.overview.chips.TbrChip
 import app.aaps.ui.compose.overview.chips.TempTargetChip
+import app.aaps.ui.compose.sportMode.ExerciseChip
 
 @Composable
 fun OverviewChipsColumn(
@@ -54,6 +55,8 @@ fun OverviewChipsColumn(
     // The command chips (running mode / profile / temp target) open mutating screens — their click is disabled on an
     // unpaired client (same MASTER_OR_PAIRED_CLIENT gate as nav/Manage), while the chip stays visible as status.
     commandsAllowed: Boolean = true,
+    /** AutoISF fork (sport mode): shows the Exercise chip next to the temp target when not null. */
+    onExerciseClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -79,7 +82,8 @@ fun OverviewChipsColumn(
             tbrState = tbrState,
             onNavigate = onNavigate,
             onTbrChipClick = onTbrChipClick,
-            commandsAllowed = commandsAllowed
+            commandsAllowed = commandsAllowed,
+            onExerciseClick = onExerciseClick
         )
         IobCobChipsRow(
             iobUiState = iobUiState,
@@ -113,7 +117,8 @@ private fun NarrowChips(
     tbrState: TbrState,
     onNavigate: (NavigationRequest) -> Unit,
     onTbrChipClick: () -> Unit,
-    commandsAllowed: Boolean
+    commandsAllowed: Boolean,
+    onExerciseClick: (() -> Unit)?
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically
@@ -158,6 +163,7 @@ private fun NarrowChips(
                 enabled = commandsAllowed && LocalClientRole.current.allows(ElementType.TEMP_TARGET_MANAGEMENT.role)
             )
         }
+        if (onExerciseClick != null && commandsAllowed) ExerciseChip(onClick = onExerciseClick)
         TbrChip(
             state = tbrState,
             onClick = onTbrChipClick

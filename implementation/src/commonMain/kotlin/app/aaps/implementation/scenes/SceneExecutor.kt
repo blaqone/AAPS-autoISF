@@ -389,6 +389,95 @@ class SceneExecutor(
         if (hadProfileSwitch) notificationManager.dismiss(NotificationId.PROFILE_SET_OK)
     }
 
+    /**
+     * AutoISF fork (sport mode): moves the end of the active, timed scene [minutes] later. The records the scene
+     * made get the same new end: the temp target is set again from now (the old one is cancelled), the profile
+     * switch, the running mode and the careportal event keep their start and only get a longer duration. A record
+     * the user changed during the scene is left alone, as at the end of a scene. Master only.
+     */
+    suspend fun extend(minutes: Int): SceneExecutionResult {
+        val state = activeSceneManager.getActiveState()
+            ?: return SceneExecutionResult(success = false, errorMessage = rh.gs(CoreUiStrings.scene_no_active))
+        if (activeSceneManager.isExpired() || state.durationMs <= 0 || minutes <= 0)
+            return SceneExecutionResult(success = false, errorMessage = rh.gs(CoreUiStrings.scene_no_active))
+        val now = dateUtil.now()
+        val newEnd = state.activatedAt + state.durationMs + T.mins(minutes.toLong()).msecs()
+        var scoped = state.scopedRecords
+        var allSuccess = true
+        try {
+            // Temp target: a new one from now to the new end, if the scene's one is still in force
+            val ttId = scoped.ttId
+            val currentTt = persistenceLayer.getTemporaryTargetActiveAt(now)
+            if (ttId != null && currentTt != null && currentTt.id == ttId) {
+                val result = persistenceLayer.insertAndCancelCurrentTemporaryTarget(
+                    temporaryTarget = TT(
+                        timestamp = now,
+                        duration = newEnd - now,
+                        reason = currentTt.reason,
+                        lowTarget = currentTt.lowTarget,
+                        highTarget = currentTt.highTarget
+                    ),
+                    action = Action.TT,
+                    source = Sources.Scene,
+                    note = null,
+                    listValues = listOf(ValueWithUnit.Mgdl(currentTt.lowTarget), ValueWithUnit.Minute(((newEnd - now) / 60_000L).toInt()))
+                )
+                result.inserted.firstOrNull()?.id?.let { scoped = scoped.copy(ttId = it, ttNsId = null) }
+            }
+            // Profile switch: the same switch, ending later (no new switch, so nothing new goes to the pump)
+            val psId = activeSceneManager.followInsulinCopyNow() ?: scoped.psId
+            val currentPs = persistenceLayer.getProfileSwitchActiveAt(now)
+            if (psId != null && currentPs != null && currentPs.id == psId && currentPs.duration > 0) {
+                silencedProfileWrite(wroteRow = { it.updated.isNotEmpty() || it.inserted.isNotEmpty() }) {
+                    persistenceLayer.insertOrUpdateProfileSwitch(
+                        profileSwitch = currentPs.copy(duration = newEnd - currentPs.timestamp),
+                        action = Action.PROFILE_SWITCH,
+                        source = Sources.Scene,
+                        note = null,
+                        listValues = listOf(ValueWithUnit.Minute(minutes))
+                    )
+                }
+                profileSwitchSilentGate.markSilent(currentPs.id, now)
+            }
+            // Running mode and careportal event: the same record, ending later
+            scoped.rmId?.let { persistenceLayer.getRunningModeById(it) }
+                ?.takeIf { it.duration > 0 && it.timestamp + it.duration > now }
+                ?.let {
+                    persistenceLayer.insertOrUpdateRunningMode(
+                        runningMode = it.copy(duration = newEnd - it.timestamp),
+                        action = Action.RUNNING_MODE,
+                        source = Sources.Scene,
+                        listValues = listOf(ValueWithUnit.SimpleString(it.mode.name))
+                    )
+                }
+            scoped.teId?.let { persistenceLayer.getTherapyEventById(it) }
+                ?.takeIf { it.duration > 0 && it.timestamp + it.duration > now }
+                ?.let { persistenceLayer.insertOrUpdateTherapyEvent(it.copy(duration = newEnd - it.timestamp)) }
+        } catch (e: Exception) {
+            aapsLogger.error(LTag.UI, "Failed to extend scene '${state.scene.name}'", e)
+            allSuccess = false
+        }
+        // The scene itself: new end, new expiry. The scoped ids may have changed meanwhile (NS ids), so take the newest.
+        val latest = activeSceneManager.getActiveState() ?: state
+        activeSceneManager.setActive(
+            latest.copy(
+                durationMs = newEnd - latest.activatedAt,
+                scopedRecords = if (scoped.ttId != state.scopedRecords.ttId) latest.scopedRecords.copy(ttId = scoped.ttId, ttNsId = null) else latest.scopedRecords
+            )
+        )
+        sceneExpiryScheduler.schedule(state.scene.name, newEnd - now)
+        uel.log(
+            action = Action.SCENE_ACTIVATED,
+            source = Sources.Scene,
+            note = "+$minutes min",
+            listValues = listOf(ValueWithUnit.SimpleString(state.scene.name), ValueWithUnit.Minute(minutes))
+        )
+        return SceneExecutionResult(
+            success = allSuccess,
+            errorMessage = if (!allSuccess) rh.gs(CoreUiStrings.scene_some_actions_failed) else null
+        )
+    }
+
     /** AutoISF fork: the AutoISF settings the scene changes, as they are now, so the end can restore them. */
     private fun capturePriorAutoIsf(scene: Scene): ActiveSceneState.AutoIsfPrior? {
         val action = scene.actions.filterIsInstance<SceneAction.AutoIsfSettings>().firstOrNull() ?: return null

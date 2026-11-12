@@ -7,6 +7,7 @@ import app.aaps.core.data.model.PS
 import app.aaps.core.data.model.RM
 import app.aaps.core.data.model.Scene
 import app.aaps.core.data.model.SceneAction
+import app.aaps.core.data.model.TT
 import app.aaps.core.data.time.T
 import app.aaps.core.data.ui.ConfirmationLine
 import app.aaps.core.data.ui.ConfirmationRole
@@ -437,5 +438,75 @@ class SceneExecutorTest : TestBaseWithProfile() {
 
         verify(preferences).put(BooleanKey.ApsUseAutoIsfWeights, true)
         verify(preferences).put(IntKey.ApsAutoIsfIobThPercent, 100)
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // AutoISF fork (sport mode): extending a running scene
+    // ---------------------------------------------------------------------------------------------
+
+    private fun sportTt(id: Long) = TT(
+        id = id, timestamp = now - T.mins(10).msecs(), duration = T.mins(30).msecs(),
+        reason = TT.Reason.ACTIVITY, lowTarget = 140.0, highTarget = 140.0
+    )
+
+    private fun sportSceneRunning(ttId: Long? = null) {
+        whenever(activeSceneManager.getActiveState()).thenReturn(
+            ActiveSceneState(
+                scene = smbScene, activatedAt = now - T.mins(10).msecs(), durationMs = T.mins(30).msecs(),
+                scopedRecords = ScopedRecords(ttId = ttId)
+            )
+        )
+    }
+
+    // Block body: containsExactly returns a value, see above.
+    @Test fun `extending a scene moves its end and its expiry`() {
+        sportSceneRunning()
+
+        val result = runBlocking { sut.extend(15) }
+
+        assertThat(result.success).isTrue()
+        val captor = argumentCaptor<ActiveSceneState>()
+        verify(activeSceneManager).setActive(captor.capture())
+        assertThat(captor.firstValue.durationMs).isEqualTo(T.mins(45).msecs())
+        // 10 minutes have run, 35 are left
+        assertThat(expiryScheduler.scheduled).containsExactly("Exercise" to T.mins(35).msecs())
+    }
+
+    @Test fun `extending a scene sets its temp target again up to the new end`() = runBlocking {
+        sportSceneRunning(ttId = 5L)
+        whenever(persistenceLayer.getTemporaryTargetActiveAt(anyLong())).thenReturn(sportTt(5L))
+        whenever(persistenceLayer.insertAndCancelCurrentTemporaryTarget(any(), any(), any(), anyOrNull(), any()))
+            .thenReturn(PersistenceLayer.TransactionResult<TT>().apply { inserted.add(sportTt(9L)) })
+
+        sut.extend(15)
+
+        val ttCaptor = argumentCaptor<TT>()
+        verifyBlocking(persistenceLayer) { insertAndCancelCurrentTemporaryTarget(ttCaptor.capture(), any(), any(), anyOrNull(), any()) }
+        assertThat(ttCaptor.firstValue.timestamp).isEqualTo(now)
+        assertThat(ttCaptor.firstValue.duration).isEqualTo(T.mins(35).msecs())
+        assertThat(ttCaptor.firstValue.lowTarget).isEqualTo(140.0)
+        // The scene follows its new temp target, so ending it later cancels that one
+        val stateCaptor = argumentCaptor<ActiveSceneState>()
+        verify(activeSceneManager).setActive(stateCaptor.capture())
+        assertThat(stateCaptor.firstValue.scopedRecords.ttId).isEqualTo(9L)
+    }
+
+    @Test fun `extending leaves a temp target the user set during the scene alone`() = runBlocking {
+        sportSceneRunning(ttId = 5L)
+        whenever(persistenceLayer.getTemporaryTargetActiveAt(anyLong())).thenReturn(sportTt(77L))
+
+        sut.extend(15)
+
+        verifyBlocking(persistenceLayer, never()) { insertAndCancelCurrentTemporaryTarget(any(), any(), any(), anyOrNull(), any()) }
+    }
+
+    @Test fun `extending without an active scene does nothing`() = runBlocking {
+        whenever(activeSceneManager.getActiveState()).thenReturn(null)
+
+        val result = sut.extend(15)
+
+        assertThat(result.success).isFalse()
+        assertThat(expiryScheduler.scheduled).isEmpty()
+        verify(activeSceneManager, never()).setActive(any())
     }
 }

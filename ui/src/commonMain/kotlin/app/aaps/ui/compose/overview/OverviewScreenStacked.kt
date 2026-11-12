@@ -35,6 +35,10 @@ import app.aaps.ui.compose.overview.graphs.GraphViewModel
 import app.aaps.ui.compose.overview.graphs.GraphsSection
 import app.aaps.ui.compose.overview.statusLights.StatusViewModel
 import app.aaps.ui.compose.scenes.ActiveSceneBanner
+import app.aaps.ui.compose.sportMode.SportModeButtons
+import app.aaps.ui.compose.sportMode.SportModeHeader
+import app.aaps.ui.compose.sportMode.SportModeUiState
+import app.aaps.core.interfaces.navigation.ElementType
 
 @Composable
 fun OverviewScreenStacked(
@@ -76,6 +80,10 @@ fun OverviewScreenStacked(
     eatReminderBanner: @Composable () -> Unit = {},
     /** Height of the bars drawn over the content in preview mode (a short window, e.g. split screen); added to the end space. */
     overlaidBarsHeight: Dp = 0.dp,
+    /** AutoISF fork (sport mode): null = no sport mode (previews, tests). */
+    sportMode: SportModeUiState? = null,
+    onExerciseClick: (() -> Unit)? = null,
+    onSportExtend: (minutes: Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val config = LocalConfig.current
@@ -94,7 +102,9 @@ fun OverviewScreenStacked(
             .padding(paddingValues)
             .verticalScroll(rememberScrollState())
     ) {
-        ActiveSceneBanner(
+        val sportActive = sportMode?.active == true
+        // In the sport view its own bar replaces the scene bar: it has the time left and End as well
+        if (!sportActive) ActiveSceneBanner(
             activeState = activeSceneState,
             expired = sceneExpired,
             chainTargetName = activeSceneChainTargetName,
@@ -104,7 +114,15 @@ fun OverviewScreenStacked(
             formatDuration = formatDuration
         )
         eatReminderBanner()
-        Row(
+        if (sportActive && sportMode != null) SportModeHeader(
+            state = sportMode,
+            bgInfo = bgInfoState.bgInfo,
+            iobText = iobUiState.text,
+            targetText = tempTargetText,
+            onExtend = onSportExtend,
+            onEnd = onEndScene,
+            controlsEnabled = endSceneEnabled
+        ) else Row(
             modifier = Modifier
                 .fillMaxWidth()
                 // With the AutoISF chip below, the chip brings its own small gap, as between the chips.
@@ -144,6 +162,7 @@ fun OverviewScreenStacked(
                 onTbrChipClick = onTbrChipClick,
                 onIobChipClick = onIobChipClick,
                 commandsAllowed = commandsAllowed,
+                onExerciseClick = onExerciseClick,
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = 8.dp)
@@ -183,6 +202,13 @@ fun OverviewScreenStacked(
                 flavorTint = flavorTint
             )
         }
+
+        if (sportActive) SportModeButtons(
+            onCarbs = { onNavigate(NavigationRequest.Element(ElementType.CARBS)) },
+            onTempTarget = { onNavigate(NavigationRequest.Element(ElementType.TEMP_TARGET_MANAGEMENT)) },
+            onInsulin = { onNavigate(NavigationRequest.Element(ElementType.INSULIN)) },
+            enabled = commandsAllowed
+        )
 
         GraphsSection(
             graphViewModel = graphViewModel, isSimpleMode = isSimpleMode, iobText = iobUiState.text, cobText = cobUiState.text,

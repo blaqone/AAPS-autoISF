@@ -44,6 +44,7 @@ import app.aaps.ui.compose.notificationsSheet.NotificationFab
 import app.aaps.ui.compose.overview.chips.ChipsViewModel
 import app.aaps.ui.compose.overview.graphs.GraphViewModel
 import app.aaps.ui.compose.overview.statusLights.StatusViewModel
+import app.aaps.ui.compose.sportMode.SportModeUiState
 import kotlinx.coroutines.delay
 
 private val SPLIT_LAYOUT_MIN_WIDTH: Dp = (2 * PHONE_COLUMN_MIN_WIDTH_DP).dp
@@ -104,6 +105,10 @@ fun OverviewScreen(
     queueStatusText: AnnotatedString? = null,
     isPumpCommunicating: Boolean = false,
     onStopBolus: () -> Unit = {},
+    /** AutoISF fork (sport mode): the sport view and its chip, phone portrait layout only. Null = none. */
+    sportMode: SportModeUiState? = null,
+    onExerciseClick: (() -> Unit)? = null,
+    onSportExtend: (minutes: Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showNotificationSheet by remember { mutableStateOf(false) }
@@ -266,7 +271,10 @@ fun OverviewScreen(
                     commandsAllowed = commandsAllowed,
                     formatDuration = formatDuration,
                     eatReminderBanner = eatReminderBanner,
-                    overlaidBarsHeight = overlaidBarsHeight
+                    overlaidBarsHeight = overlaidBarsHeight,
+                    sportMode = sportMode,
+                    onExerciseClick = onExerciseClick,
+                    onSportExtend = onSportExtend
                 )
             }
         }
