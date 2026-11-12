@@ -247,9 +247,11 @@ enum class BooleanKey(
         defaultedBySM = true,
         sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
     ),
+    // AutoISF fork: off by default. It is not part of AutoISF 3.4 (it came with the AAPS 4 base) and changes the
+    // target and the SMB size, so nobody should have it without switching it on.
     ApsAutoIsfUseActivityClassifier(
         "autoisf_use_activity_classifier",
-        true,
+        false,
         KeysStrings.pref_title_aps_autoisf_use_activity_classifier,
         KeysStrings.pref_summary_aps_autoisf_use_activity_classifier,
         defaultedBySM = true,
