@@ -59,8 +59,6 @@ import app.aaps.core.ui.compose.icons.IcPluginOpenAPS
 import app.aaps.core.ui.compose.preference.PreferenceSubScreenDef
 import app.aaps.plugins.aps.ApsStrings
 import app.aaps.plugins.aps.openAPSSMB.PhoneMovementDetector
-import app.aaps.plugins.aps.openAPSSMB.ActivityClass
-import app.aaps.plugins.aps.openAPSSMB.ActivityClassifier
 import app.aaps.plugins.aps.openAPSSMB.StepService
 import app.aaps.plugins.aps.events.EventOpenAPSUpdateGui
 import app.aaps.plugins.aps.events.EventResetOpenAPSGui
@@ -154,8 +152,6 @@ open class OpenAPSAutoISFPlugin(
     val iobThresholdPercent; get() = preferences.get(IntKey.ApsAutoIsfIobThPercent)
     private val exerciseMode; get() = SMBDefaults.exercise_mode
     private val highTemptargetRaisesSensitivity; get() = preferences.get(BooleanKey.ApsAutoIsfHighTtRaisesSens)
-    private val useActivityClassifier; get() = preferences.get(BooleanKey.ActivityMonitorDetection) && preferences.get(BooleanKey.ApsAutoIsfUseActivityClassifier)
-    private val useActivityTargetOffset; get() = useActivityClassifier && preferences.get(BooleanKey.ApsAutoIsfUseActivityTargetOffset)
     /** The steps the phone counted, in the form the activity monitor uses. */
     private fun phoneSteps() = MonitorSteps(
         last5 = StepService.getRecentStepCount5Min(),
@@ -283,44 +279,8 @@ open class OpenAPSAutoISFPlugin(
         var activityLog = if (consoleLog.size == 0) "Activity Monitor skipped" else consoleLog[0]
         consoleLog.clear()
 
-        val stepActivityDetected: Boolean
-        val stepInactivityDetected: Boolean
-        val smbCapFactor: Double
-        // During a temp target the step monitor is off (ratio 1.0). The classifier stays off too, so it cannot
-        // change sensitivity or SMB size while a temp target decides the target.
-        if (useActivityClassifier && !isTempTarget) {
-            // ActivityClassifier fuses phone activity + steps + HR for richer classification.
-            val avgHrForActivity = persistenceLayer.getHeartRatesFromTime(dateUtil.now() - T.mins(15).msecs())
-                .map { it.beatsPerMinute }.average().takeIf { !it.isNaN() } ?: 0.0
-            val activityClass = ActivityClassifier.classify(
-                steps15m = steps?.last15Sum ?: 0,
-                avgHrLast15m = avgHrForActivity,
-                restingHr = preferences.get(IntKey.ActivityRestingHr),
-                limits = ActivityClassifier.limits(preferences.get(IntKey.ActivityClassifierSensitivity))
-            )
-            aapsLogger.debug(LTag.APS, "ActivityClass: $activityClass steps15m=${steps?.last15Sum} hr=$avgHrForActivity")
-
-            if (useActivityTargetOffset && activityClass.targetBgOffsetMgdl > 0.0) {
-                targetBg = (targetBg + activityClass.targetBgOffsetMgdl).coerceAtMost(180.0)
-                minBg = (minBg + activityClass.targetBgOffsetMgdl).coerceAtMost(180.0)
-                maxBg = (maxBg + activityClass.targetBgOffsetMgdl).coerceAtMost(180.0)
-            }
-
-            // Activity if the classifier or the step monitor sees it. When only the classifier sees it, use the
-            // same ratio as full step activity. The ratio is then capped by autosens (activitySensitivityRatio).
-            stepActivityDetected = activityClass == ActivityClass.AEROBIC || activityRatio < 1
-            stepInactivityDetected = !stepActivityDetected && activityClass == ActivityClass.REST && activityRatio > 1
-            if (activityClass == ActivityClass.AEROBIC && activityRatio >= 1) {
-                activityRatio = defaultActivityRatio(preferences.get(DoubleKey.ActivityScaleFactor))
-                preferences.put(DoubleKey.ActivityMonitorRatio, activityRatio)
-            }
-            smbCapFactor = activityClass.smbCapFactor
-            activityLog += "; ActivityClassifier: $activityClass, activity ratio: $activityRatio, SMB cap factor: $smbCapFactor"
-        } else {
-            stepActivityDetected = activityRatio < 1
-            stepInactivityDetected = activityRatio > 1
-            smbCapFactor = 1.0
-        }
+        val stepActivityDetected = activityRatio < 1
+        val stepInactivityDetected = activityRatio > 1
         // Kept in the preferences only as the last known state; the calculation gets it directly below
         preferences.put(BooleanKey.ActivityMonitorStepsActive, stepActivityDetected)
         preferences.put(BooleanKey.ActivityMonitorStepsInactive, stepInactivityDetected)
@@ -371,8 +331,8 @@ open class OpenAPSAutoISFPlugin(
             allowSMB_with_high_temptarget = smbEnabled && preferences.get(BooleanKey.ApsUseSmbWithHighTt),
             enableSMB_always = smbEnabled && preferences.get(BooleanKey.ApsUseSmbAlways) && advancedFiltering,
             enableSMB_after_carbs = smbEnabled && preferences.get(BooleanKey.ApsUseSmbAfterCarbs) && advancedFiltering,
-            maxSMBBasalMinutes = (preferences.get(IntKey.ApsMaxMinutesOfBasalToLimitSmb) * smbCapFactor).toInt(),
-            maxUAMSMBBasalMinutes = (preferences.get(IntKey.ApsUamMaxMinutesOfBasalToLimitSmb) * smbCapFactor).toInt(),
+            maxSMBBasalMinutes = preferences.get(IntKey.ApsMaxMinutesOfBasalToLimitSmb),
+            maxUAMSMBBasalMinutes = preferences.get(IntKey.ApsUamMaxMinutesOfBasalToLimitSmb),
             bolus_increment = pump.pumpDescription.bolusStep,
             carbsReqThreshold = preferences.get(IntKey.ApsCarbsRequestThreshold),
             current_basal = ch.fromPump(activePlugin.activePump.baseBasalRate),
@@ -1169,11 +1129,7 @@ open class OpenAPSAutoISFPlugin(
                     BooleanKey.ActivityMonitorOvernight,
                     IntKey.ActivityMonitorIdleStart,
                     IntKey.ActivityMonitorIdleEnd,
-                    BooleanKey.ActivityMonitorShowStepsFromSmartphone,
-                    BooleanKey.ApsAutoIsfUseActivityClassifier,
-                    BooleanKey.ApsAutoIsfUseActivityTargetOffset,
-                    IntKey.ActivityClassifierSensitivity,
-                    IntKey.ActivityRestingHr
+                    BooleanKey.ActivityMonitorShowStepsFromSmartphone
                 )
             )
         ),

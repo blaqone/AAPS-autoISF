@@ -40,10 +40,4 @@ class ActivitySensitivityTest {
         assertThat(activitySensitivityRatio(autosensRatio = 1.0, activityRatio = 1.3, activityDetected = false, autosensMax = 1.2)).isEqualTo(1.2)
     }
 
-    @Test
-    fun `default activity ratio follows the scale factor`() {
-        assertThat(defaultActivityRatio(1.0)).isWithin(1e-9).of(0.7)
-        assertThat(defaultActivityRatio(0.5)).isWithin(1e-9).of(0.85)
-        assertThat(defaultActivityRatio(0.0)).isWithin(1e-9).of(1.0)
-    }
 }

@@ -20,11 +20,8 @@ internal fun activitySensitivityRatio(autosensRatio: Double, activityRatio: Doub
     }
 
 /**
- * What the activity monitor and the activity classifier found in one loop run. Handed directly from the
+ * What the activity monitor found in one loop run. Handed directly from the
  * plugin to `autoISF` and `determine_basal`, so a value of an earlier run can never be used. The default is
  * "nothing detected".
  */
 data class ActivityState(val ratio: Double = 1.0, val activityDetected: Boolean = false, val inactivityDetected: Boolean = false)
-
-/** Activity ratio used when the classifier detects activity but the step monitor does not: same as full step activity. */
-internal fun defaultActivityRatio(activityScaleFactor: Double): Double = 1 - 0.3 * activityScaleFactor

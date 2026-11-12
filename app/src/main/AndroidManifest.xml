@@ -205,9 +205,6 @@
                 tools:node="remove" />
         </provider>
 
-        <receiver android:name=".ActivityRecognitionReceiver"
-                  android:exported="false" />
-
     </application>
 
 </manifest>

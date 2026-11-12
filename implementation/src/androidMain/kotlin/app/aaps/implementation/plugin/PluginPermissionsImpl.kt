@@ -125,7 +125,7 @@ class PluginPermissionsImpl(
             )
         )
 
-        // Feeds StepService and ActivityRecognitionReceiver, which AutoISF's activity monitor reads.
+        // Feeds StepService, which AutoISF's activity monitor reads.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             add(
                 PermissionGroup(
