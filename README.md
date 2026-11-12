@@ -181,6 +181,14 @@ This program comes with ABSOLUTELY NO WARRANTY, to the extent permitted by appli
 
 The newest changes. ⚠ = this change can affect insulin dosing.
 
+### 2026-11-12 (32) – Sport: iobTH-Legende, Classifier aus
+
+- **IOB-Graph:** In der Legende ist iobTH jetzt gestrichelt wie seine Linie und hellviolett statt hellblau –
+  vorher kaum von IOB zu unterscheiden (gemeldet von Gerhard).
+- ⚠ **Activity Classifier ist jetzt standardmäßig aus.** Er gehört nicht zu AutoISF 3.4 (kam mit der AAPS-4-Basis)
+  und ändert Ziel und SMB-Größe – das soll niemand ungefragt haben. Wer ihn will, schaltet ihn in den
+  Activity-Monitor-Einstellungen ein; wer ihn schon selbst eingeschaltet hatte, behält ihn.
+
 ### 2026-11-12 (31) – Sport: Sport-Modus umgebaut – der Knopf schaltet Half Basal (nur sport, im Test)
 
 Ersetzt die Szenen-Variante aus (30). Die war falsch umgesetzt: Gewollt war nur Half Basal per Knopf.
@@ -253,13 +261,6 @@ Bisher ist die App beim Update über **AAPS 3.4.2.6 + AutoISF 3.2.1** bei jedem 
 - ⚠ **Uhr-Schritte, Wear OS:** Eine Wear-Uhr schreibt 6 Zeilen gleichzeitig. Jetzt zählt nur die neueste
   und längste davon, also nichts doppelt – auch mit einer älteren Wear-App.
 - Activity Monitor selbst unverändert (Grenzen wie im Original AutoISF).
-
-### 2026-11-11 (26) – Doku: Version 4.0.0 genannt, echter Screenshot
-
-- README und Anleitung nennen jetzt genau **AAPS 4.0.0** statt nur „AAPS 4“.
-- Die gezeichneten Beispielbilder sind entfernt. Stattdessen gibt es einen **echten Screenshot** des
-  Hauptbildschirms mit geöffnetem AutoISF-Chip.
-- Nur Doku, keine Änderung an der App.
 
 All changes: [CHANGELOG-autoISF.md](CHANGELOG-autoISF.md)
 <!-- changelog:end -->

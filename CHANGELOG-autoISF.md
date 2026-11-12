@@ -5,6 +5,14 @@ Testversion. Nur mit virtueller Pumpe oder im Open Loop testen.
 
 ---
 
+## 2026-11-12 (32) – Sport: iobTH-Legende, Classifier aus
+
+- **IOB-Graph:** In der Legende ist iobTH jetzt gestrichelt wie seine Linie und hellviolett statt hellblau –
+  vorher kaum von IOB zu unterscheiden (gemeldet von Gerhard).
+- ⚠ **Activity Classifier ist jetzt standardmäßig aus.** Er gehört nicht zu AutoISF 3.4 (kam mit der AAPS-4-Basis)
+  und ändert Ziel und SMB-Größe – das soll niemand ungefragt haben. Wer ihn will, schaltet ihn in den
+  Activity-Monitor-Einstellungen ein; wer ihn schon selbst eingeschaltet hatte, behält ihn.
+
 ## 2026-11-12 (31) – Sport: Sport-Modus umgebaut – der Knopf schaltet Half Basal (nur sport, im Test)
 
 Ersetzt die Szenen-Variante aus (30). Die war falsch umgesetzt: Gewollt war nur Half Basal per Knopf.
