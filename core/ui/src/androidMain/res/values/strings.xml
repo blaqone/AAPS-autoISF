@@ -429,24 +429,19 @@
     <!-- AutoISF fork: sport mode -->
     <string name="sport_mode_exercise">Exercise</string>
     <string name="sport_mode_title">Sport mode</string>
-    <string name="sport_mode_bar" comment="%1$s=time left, already with its words. Example: Sport mode · 42 min left">Sport mode · %1$s</string>
     <string name="sport_mode_basal" comment="%1$d=basal in percent of the profile basal that the loop uses now. Example: Basal 55 %">Basal %1$d %%</string>
-    <string name="sport_mode_no_effect">No effect: "High temp target raises sensitivity" is off</string>
-    <string name="sport_mode_extend_15">+15</string>
-    <string name="sport_mode_extend_30">+30</string>
     <string name="sport_mode_end">End</string>
+    <string name="sport_mode_half_basal_on">Sport mode · half basal on</string>
+    <string name="sport_mode_basal_rate" comment="%1$s=basal rate the loop uses now, %2$s=basal rate of the profile, both with unit. Example: 0.44 U/h (profile 0.80 U/h)">%1$s (profile %2$s)</string>
+    <string name="sport_mode_tbr_now" comment="%1$s=temp basal rate running now, with unit. Example: TBR now 0.30 U/h">TBR now %1$s</string>
+    <string name="sport_mode_since" comment="%1$s=clock time when the sport mode was switched on. Example: since 14:20">since %1$s</string>
+    <string name="sport_mode_waits_for_tt">Half basal works only with a high temp target. Set one with TT.</string>
     <string name="sport_mode_bg">BG</string>
     <string name="sport_mode_target">Target</string>
     <string name="sport_mode_target_until" comment="%1$s=clock time when the temp target ends. Example: until 15:42">until %1$s</string>
     <string name="sport_mode_carbs">Carbs</string>
     <string name="sport_mode_tt">Temp target</string>
     <string name="sport_mode_insulin">Insulin</string>
-    <string name="sport_mode_start_title">Start sport mode</string>
-    <string name="sport_mode_scene">Scene</string>
-    <string name="sport_mode_duration">Duration</string>
-    <string name="sport_mode_start">Start</string>
-    <string name="sport_mode_no_scenes">Create a scene with a high temp target first (Scenes). The sport mode starts it.</string>
-    <string name="sport_mode_extend_master_only">Extending works only on the main phone</string>
     <string name="sport_summary_title">Activity finished</string>
     <string name="sport_summary_duration">Duration</string>
     <string name="sport_summary_bg_start">BG at the start</string>

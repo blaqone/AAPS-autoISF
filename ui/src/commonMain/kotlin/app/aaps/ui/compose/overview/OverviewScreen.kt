@@ -108,7 +108,7 @@ fun OverviewScreen(
     /** AutoISF fork (sport mode): the sport view and its chip, phone portrait layout only. Null = none. */
     sportMode: SportModeUiState? = null,
     onExerciseClick: (() -> Unit)? = null,
-    onSportExtend: (minutes: Int) -> Unit = {},
+    onSportEnd: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showNotificationSheet by remember { mutableStateOf(false) }
@@ -274,7 +274,7 @@ fun OverviewScreen(
                     overlaidBarsHeight = overlaidBarsHeight,
                     sportMode = sportMode,
                     onExerciseClick = onExerciseClick,
-                    onSportExtend = onSportExtend
+                    onSportEnd = onSportEnd
                 )
             }
         }
