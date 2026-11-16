@@ -5,10 +5,6 @@ Testversion. Nur mit virtueller Pumpe oder im Open Loop testen.
 
 ---
 
-## 2026-11-16 (42) – Doku: Dank an ga-zelle und swissalpine
-
-- README: Dank an [ga-zelle](https://github.com/ga-zelle) und [swissalpine](https://github.com/swissalpine), neben JetFoxy.
-
 ## 2026-11-12 (34) – Activity Classifier entfernt
 
 - ⚠ **Der Activity Classifier ist ganz entfernt** – Code, die Einstellungen „Use ActivityClassifier“,
