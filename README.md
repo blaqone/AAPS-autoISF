@@ -37,6 +37,8 @@ This fork brings **AutoISF 3.2.1** to **AndroidAPS 4.0.0** and adds features for
 that send a value every minute (for example Libre 3 through Juggluco).
 
 - Based on AndroidAPS 4.0.0 and JetFoxy's branch `autoisf-3.2.1` – many thanks to JetFoxy!
+- Many thanks also to [ga-zelle](https://github.com/ga-zelle) (AutoISF) and [swissalpine](https://github.com/swissalpine)
+  for their work, ideas and tests!
 - Goal: AutoISF stays **as close to the original as possible**.
 - No version expiry: this is not an official AAPS version, so the official version check is off.
   It would otherwise set max IOB to 0 some time after a new official release.
@@ -181,6 +183,10 @@ This program comes with ABSOLUTELY NO WARRANTY, to the extent permitted by appli
 
 The newest changes. ⚠ = this change can affect insulin dosing.
 
+### 2026-11-16 (42) – Doku: Dank an ga-zelle und swissalpine
+
+- README: Dank an [ga-zelle](https://github.com/ga-zelle) und [swissalpine](https://github.com/swissalpine), neben JetFoxy.
+
 ### 2026-11-12 (34) – Activity Classifier entfernt
 
 - ⚠ **Der Activity Classifier ist ganz entfernt** – Code, die Einstellungen „Use ActivityClassifier“,
@@ -241,21 +247,6 @@ Ersetzt die Szenen-Variante aus (30). Die war falsch umgesetzt: Gewollt war nur 
 - **Keine neue Dosierungslogik:** Der Modus startet nur deine Szene; AutoISF rechnet mit dem TT wie immer
   (Half Basal). „KH nötig“ wird bewusst nie gezeigt.
 - Im Querformat und auf dem Tablet bleibt die normale Ansicht.
-
-### 2026-11-11 (29) – Update direkt von AutoISF 3.4.2.6 möglich
-
-Bisher ist die App beim Update über **AAPS 3.4.2.6 + AutoISF 3.2.1** bei jedem Start abgestürzt.
-
-- **Datenbank-Version 32 doppelt belegt:** AutoISF 3.4 nutzt Version 32 für seine Tabelle `autoIsfValues`,
-  AAPS 4 für die Spalte `carbInsulin` in den Tagesdosen (TDD). **Fix:** Fehlt die Spalte, wird der TDD-Cache
-  geleert (wird neu berechnet) und die Spalte angelegt; die alte Tabelle `autoIsfValues` wird gelöscht.
-  Bei einer normalen AAPS-4-Datenbank passiert nichts.
-- **Unbekannte Einträge im Benutzerprotokoll** (`AUTOISF_ENABLED`, `AUTOISF_DISABLED`, `IOB_TH_SET`,
-  `ACCE_WEIGHT_SET`) werden zu „UNKNOWN“, und jeder unbekannte Eintrag wird künftig als „UNKNOWN“ gelesen
-  statt abzustürzen.
-- Die übrige Historie bleibt erhalten. Vorher trotzdem **Einstellungen exportieren**; gleicher
-  Signaturschlüssel nötig. Zurück auf 3.4 geht nicht ohne Verlust der Datenbank.
-- Am besten zuerst auf einem **Zweithandy** testen.
 
 All changes: [CHANGELOG-autoISF.md](CHANGELOG-autoISF.md)
 <!-- changelog:end -->
