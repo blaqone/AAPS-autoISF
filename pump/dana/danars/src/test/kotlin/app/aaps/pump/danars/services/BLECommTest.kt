@@ -335,4 +335,41 @@ class BLECommTest : TestBase() {
         verify(bleTransport).updatePairingState(PairingState(step = PairingStep.ERROR, errorMessage = "Pump Error"))
         verify(danaRSPlugin, never()).clearPairing()
     }
+
+    /** Decrypted answer to the pump check that is none of OK, PUMP, BUSY (what a wrong serial number gives) */
+    private fun unexpectedReply(): ByteArray =
+        byteArrayOf(BleEncryption.DANAR_PACKET__TYPE_ENCRYPTION_RESPONSE.toByte(), BleEncryption.DANAR_PACKET__OPCODE_ENCRYPTION__PUMP_CHECK.toByte()) +
+            "ER".encodeToByteArray()
+
+    /** One odd answer to the pump check cleared the pairing at once, the pump then stayed disconnected (AAPS #5571). */
+    @Test
+    fun oneUnexpectedPumpCheckAnswerKeepsThePairing() {
+        whenever(bleEncryption.getDecryptedPacket(any())).thenReturn(unexpectedReply())
+
+        repeat(BLEComm.UNEXPECTED_PUMP_CHECK_ANSWERS_BEFORE_UNPAIR - 1) { bleComm.onCharacteristicChanged(framedPacket()) }
+
+        verify(danaRSPlugin, never()).clearPairing()
+    }
+
+    /** A wrong serial number answers wrongly every time, so the pairing is still cleared, on the third answer. */
+    @Test
+    fun unexpectedPumpCheckAnswersInARowClearThePairing() {
+        whenever(bleEncryption.getDecryptedPacket(any())).thenReturn(unexpectedReply())
+
+        repeat(BLEComm.UNEXPECTED_PUMP_CHECK_ANSWERS_BEFORE_UNPAIR) { bleComm.onCharacteristicChanged(framedPacket()) }
+
+        verify(danaRSPlugin, times(1)).clearPairing()
+    }
+
+    /** A known answer in between starts the count again. */
+    @Test
+    fun aKnownAnswerResetsTheCountOfUnexpectedAnswers() {
+        whenever(rh.gs(R.string.pumperror)).thenReturn("Pump Error")
+        val odd = unexpectedReply()
+        whenever(bleEncryption.getDecryptedPacket(any())).thenReturn(odd, odd, pumpReply(), odd, odd)
+
+        repeat(5) { bleComm.onCharacteristicChanged(framedPacket()) }
+
+        verify(danaRSPlugin, never()).clearPairing()
+    }
 }
