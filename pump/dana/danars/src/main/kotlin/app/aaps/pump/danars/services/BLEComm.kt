@@ -67,6 +67,14 @@ class BLEComm(
         private const val BLE5_PACKET_START_BYTE = 0xAA.toByte()
         private const val BLE5_PACKET_END_BYTE = 0xEE.toByte()
 
+        /**
+         * Unexpected answers to the pump check in a row (over connections) before the pairing is cleared.
+         * One odd answer (a disturbed connection, a firmware variant) cleared the pairing at once, so the pump
+         * lost its connection until the user paired again, often at night (AAPS #5571, #5538). A wrong serial
+         * number answers wrongly every time, so it is still found, only on the third try.
+         */
+        internal const val UNEXPECTED_PUMP_CHECK_ANSWERS_BEFORE_UNPAIR = 3
+
         // How many failed packets in a row before the log says the keys are the likely cause.
         private const val DECRYPT_FAILURE_WARN_THRESHOLD = 5
     }
@@ -91,6 +99,8 @@ class BLEComm(
     private var encryptedDataRead = false
     private var encryptedCommandSent = false
     private var pumpCheckSent = false  // Guard against duplicate ENCRYPTION__PUMP_CHECK
+    /** Unexpected answers to the pump check in a row, kept over connections. See [UNEXPECTED_PUMP_CHECK_ANSWERS_BEFORE_UNPAIR]. */
+    private var unexpectedPumpCheckAnswers = 0
 
     init {
         bleTransport.setListener(this)
@@ -484,6 +494,8 @@ class BLEComm(
 
     // 1st packet response
     private fun processConnectResponse(decryptedBuffer: ByteArray) {
+        // A known answer (OK, PUMP, BUSY) shows the pump understood us: the count of odd answers starts again
+        if (!isUnexpectedPumpCheckAnswer(decryptedBuffer)) unexpectedPumpCheckAnswers = 0
         // Read again on every connection by the easy menu check (0xF4), pumps without easy mode keep false
         danaPump.isEasyModeEnabled = false
         danaPump.isConfigUD = false
@@ -586,9 +598,29 @@ class BLEComm(
             bleTransport.updatePairingState(PairingState(step = PairingStep.ERROR, errorMessage = rh.gs(app.aaps.core.ui.R.string.connection_error)))
             mSendQueue.clear()
             rxBus.send(EventPumpStatusChanged(EventPumpStatusChanged.Status.DISCONNECTED, rh.gs(app.aaps.core.ui.R.string.connection_error)))
-            danaRSPlugin.clearPairing()
-            notificationManager.post(NotificationId.WRONG_SERIAL_NUMBER, TextRef.AndroidRes(app.aaps.core.ui.R.string.password_cleared))
+            unexpectedPumpCheckAnswers++
+            if (unexpectedPumpCheckAnswers >= UNEXPECTED_PUMP_CHECK_ANSWERS_BEFORE_UNPAIR) {
+                aapsLogger.error(LTag.PUMPBTCOMM, "Unexpected pump check answer $unexpectedPumpCheckAnswers times in a row: clearing the pairing")
+                unexpectedPumpCheckAnswers = 0
+                danaRSPlugin.clearPairing()
+                notificationManager.post(NotificationId.WRONG_SERIAL_NUMBER, TextRef.AndroidRes(app.aaps.core.ui.R.string.password_cleared))
+            } else {
+                aapsLogger.error(
+                    LTag.PUMPBTCOMM,
+                    "Unexpected pump check answer ($unexpectedPumpCheckAnswers of $UNEXPECTED_PUMP_CHECK_ANSWERS_BEFORE_UNPAIR), pairing kept"
+                )
+            }
         }
+    }
+
+    /** True when [decryptedBuffer] is none of the answers [processConnectResponse] knows (OK v1/v3/BLE5, PUMP, BUSY). */
+    private fun isUnexpectedPumpCheckAnswer(decryptedBuffer: ByteArray): Boolean {
+        val size = decryptedBuffer.size
+        fun text(at: Int, value: String) = size >= at + value.length && value.indices.all { decryptedBuffer[at + it] == value[it].code.toByte() }
+        val ok = (size == 4 || size == 9 || size == 14) && text(2, "OK")
+        val pump = (size == 6 || size == 7) && text(2, "PUMP")
+        val busy = size == 6 && text(2, "BUSY")
+        return !(ok || pump || busy)
     }
 
     // 2nd packet v1 check passkey
