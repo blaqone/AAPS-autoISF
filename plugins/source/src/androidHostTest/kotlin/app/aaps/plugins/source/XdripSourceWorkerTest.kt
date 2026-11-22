@@ -4,7 +4,9 @@ import androidx.work.ListenableWorker
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import app.aaps.core.data.model.GV
+import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.data.model.SourceSensor
+import app.aaps.core.data.model.TE
 import app.aaps.core.data.model.TrendArrow
 import app.aaps.core.data.ue.Sources
 import app.aaps.core.interfaces.db.PersistenceLayer
@@ -12,6 +14,7 @@ import app.aaps.core.interfaces.receivers.Intents
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
 import app.aaps.core.utils.receivers.DataInbox
+import app.aaps.plugins.source.keys.XdripDoubleNonKey
 import app.aaps.shared.tests.BundleMock
 import app.aaps.shared.tests.TestBaseWithProfile
 import kotlinx.coroutines.CancellationException
@@ -155,6 +158,80 @@ class XdripSourceWorkerTest : TestBaseWithProfile() {
             // Batch returns success even when some bundles are skipped; verify no insert happened.
             Assertions.assertEquals(ListenableWorker.Result.success(), result)
             verify(persistenceLayer, never()).insertCgmSourceData(any(), any(), any(), any())
+        }
+    }
+
+    // AutoISF fork: a changed CGM correction is applied again to the values of the last 45 minutes
+
+    private fun storedGv(timestamp: Long, value: Double) =
+        GV(timestamp = timestamp, value = value, raw = value, noise = null, trendArrow = TrendArrow.FLAT, sourceSensor = SourceSensor.DEXCOM_G6)
+
+    private suspend fun setUpCorrection(lastSlope: Double, lastOffset: Double, slope: Double, offset: Double) {
+        whenever(xdripSourcePlugin.isEnabled()).thenReturn(true)
+        whenever(preferences.get(XdripDoubleNonKey.LastCorrectionSlope)).thenReturn(lastSlope)
+        whenever(preferences.get(XdripDoubleNonKey.LastCorrectionOffset)).thenReturn(lastOffset)
+        whenever(preferences.get(DoubleKey.BgSourceCorrectionSlope)).thenReturn(slope)
+        whenever(preferences.get(DoubleKey.BgSourceCorrectionOffset)).thenReturn(offset)
+        whenever(persistenceLayer.insertCgmSourceData(anyOrNull(), anyOrNull(), anyOrNull(), anyOrNull())).thenReturn(PersistenceLayer.TransactionResult())
+        val bundle = validBundle(now - 1000, 150.0)
+        whenever(dataInbox.drain(eq(XdripInbox))).thenReturn(listOf(bundle))
+    }
+
+    @Test
+    fun `When the correction was changed the stored values are corrected again`() {
+        runTest {
+            setUpCorrection(lastSlope = 1.0, lastOffset = 0.0, slope = 1.0, offset = -20.0)
+            val window = BgSlopeOffset.RECORRECT_WINDOW_MS
+            whenever(persistenceLayer.getBgReadingsDataFromTimeToTime(now - window, now, true))
+                .thenReturn(listOf(storedGv(now - 600_000, 140.0), storedGv(now - 300_000, 150.0)))
+
+            worker.doWork()
+
+            verify(persistenceLayer).insertCgmSourceData(
+                Sources.Xdrip, listOf(storedGv(now - 600_000, 140.0).copy(value = 120.0), storedGv(now - 300_000, 150.0).copy(value = 130.0)), emptyList(), null
+            )
+            verify(preferences).put(XdripDoubleNonKey.LastCorrectionSlope, 1.0)
+            verify(preferences).put(XdripDoubleNonKey.LastCorrectionOffset, -20.0)
+        }
+    }
+
+    @Test
+    fun `Values from before the last sensor change are not corrected again`() {
+        runTest {
+            setUpCorrection(lastSlope = 1.0, lastOffset = 0.0, slope = 1.0, offset = -20.0)
+            val sensorChange = now - 600_000
+            whenever(persistenceLayer.getLastTherapyRecordUpToNow(TE.Type.SENSOR_CHANGE))
+                .thenReturn(TE(timestamp = sensorChange, type = TE.Type.SENSOR_CHANGE, glucoseUnit = GlucoseUnit.MGDL))
+            whenever(persistenceLayer.getBgReadingsDataFromTimeToTime(any(), any(), any())).thenReturn(emptyList())
+
+            worker.doWork()
+
+            verify(persistenceLayer).getBgReadingsDataFromTimeToTime(sensorChange, now, true)
+        }
+    }
+
+    @Test
+    fun `When the correction is unchanged the stored values are not read`() {
+        runTest {
+            setUpCorrection(lastSlope = 1.0, lastOffset = -20.0, slope = 1.0, offset = -20.0)
+
+            worker.doWork()
+
+            verify(persistenceLayer, never()).getBgReadingsDataFromTimeToTime(any(), any(), any())
+            verify(preferences, never()).put(eq(XdripDoubleNonKey.LastCorrectionOffset), any<Double>())
+        }
+    }
+
+    @Test
+    fun `When the last correction is not known it is only remembered`() {
+        runTest {
+            // first value after the update: nothing is known about the stored values, so nothing is changed
+            setUpCorrection(lastSlope = 0.0, lastOffset = 0.0, slope = 1.0, offset = -20.0)
+
+            worker.doWork()
+
+            verify(persistenceLayer, never()).getBgReadingsDataFromTimeToTime(any(), any(), any())
+            verify(preferences).put(XdripDoubleNonKey.LastCorrectionOffset, -20.0)
         }
     }
 

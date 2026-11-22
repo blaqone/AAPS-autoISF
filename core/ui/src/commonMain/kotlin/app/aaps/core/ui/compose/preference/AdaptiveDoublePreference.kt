@@ -57,7 +57,7 @@ fun AdaptiveDoublePreferenceItem(
     // Get formatting info from UnitType
     val unitType = doubleKey.unitType
     val decimalPlaces = unitType.decimalPlaces()
-    val step = unitType.step()
+    val step = doubleKey.step ?: unitType.step()
     val valueFormatRef = unitType.valueFormat()
 
     // Get unit label from UnitType (for dialog input suffix)

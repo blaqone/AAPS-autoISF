@@ -28,4 +28,30 @@ object BgSlopeOffset {
         val safeOffset = offset.coerceIn(OFFSET_MIN_MGDL, OFFSET_MAX_MGDL)
         return max(LOWEST_RESULT_MGDL, valueMgdl * safeSlope + safeOffset)
     }
+
+    /**
+     * How far back stored values are corrected again when slope or offset was changed. Without this a
+     * change gives a jump between the old and the new values, and that jump looks like a fast rise or
+     * fall to AutoISF, the parabola and UKF.
+     */
+    const val RECORRECT_WINDOW_MS = 45 * 60 * 1000L
+
+    /**
+     * The value as it was before [apply], or null when it cannot be told: a result of
+     * [LOWEST_RESULT_MGDL] or lower may have been raised to that limit.
+     */
+    fun revert(correctedMgdl: Double, slope: Double, offset: Double): Double? {
+        if (correctedMgdl <= 0.0 || !isActive(slope, offset)) return correctedMgdl
+        if (correctedMgdl <= LOWEST_RESULT_MGDL) return null
+        val safeSlope = slope.coerceIn(SLOPE_MIN, SLOPE_MAX)
+        val safeOffset = offset.coerceIn(OFFSET_MIN_MGDL, OFFSET_MAX_MGDL)
+        return (correctedMgdl - safeOffset) / safeSlope
+    }
+
+    /**
+     * A stored value, corrected with the old slope and offset, corrected again with the new ones.
+     * Null when the value before the old correction cannot be told, see [revert].
+     */
+    fun recorrect(storedMgdl: Double, oldSlope: Double, oldOffset: Double, newSlope: Double, newOffset: Double): Double? =
+        revert(storedMgdl, oldSlope, oldOffset)?.let { apply(it, newSlope, newOffset) }
 }
