@@ -36,6 +36,7 @@ import app.aaps.core.ui.compose.icons.IcXDrip
 import app.aaps.core.utils.receivers.DataInbox
 import app.aaps.core.utils.receivers.Inbox
 import app.aaps.plugins.source.compose.BgSourceComposeContent
+import app.aaps.plugins.source.keys.XdripDoubleNonKey
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Assisted
 import dev.zacsweers.metro.AssistedFactory
@@ -49,6 +50,7 @@ import dev.zacsweers.metro.binding
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlin.math.abs
+import kotlin.math.max
 import kotlin.math.round
 
 @ContributesIntoMap(AppScope::class, binding = binding<PluginBase>())
@@ -77,6 +79,7 @@ class XdripSourcePlugin(
     aapsLogger = aapsLogger,
     rh = rh,
     preferences = preferences,
+    ownPreferences = XdripDoubleNonKey.entries,
     notificationManager = notificationManager
 ), BgSource, XDripSource {
 
@@ -134,6 +137,34 @@ class XdripSourcePlugin(
             return sensorStartTime
         }
 
+        /**
+         * AutoISF fork [SAFETY]: when slope or offset was changed since the last value, the stored values of
+         * the last [BgSlopeOffset.RECORRECT_WINDOW_MS] (not before the last sensor change) are corrected
+         * again with the new setting. Otherwise the old and the new values would not fit together, and the
+         * jump between them would look like a fast rise or fall to AutoISF, the parabola and UKF.
+         * The changed values are written as updates, so Nightscout gets them too.
+         */
+        private suspend fun recorrectStoredValues(slope: Double, offset: Double) {
+            val lastSlope = preferences.get(XdripDoubleNonKey.LastCorrectionSlope)
+            val lastOffset = preferences.get(XdripDoubleNonKey.LastCorrectionOffset)
+            if (lastSlope == slope && lastOffset == offset) return
+            // A slope of 0 means the last setting is not known (first value after the update): only remember it.
+            if (lastSlope > 0.0) {
+                val now = dateUtil.now()
+                val sensorChange = persistenceLayer.getLastTherapyRecordUpToNow(TE.Type.SENSOR_CHANGE)?.timestamp ?: 0L
+                val from = max(now - BgSlopeOffset.RECORRECT_WINDOW_MS, sensorChange)
+                val changed = persistenceLayer.getBgReadingsDataFromTimeToTime(from, now, ascending = true).mapNotNull { gv ->
+                    BgSlopeOffset.recorrect(gv.value, lastSlope, lastOffset, slope, offset)
+                        ?.takeIf { it != gv.value }
+                        ?.let { gv.copy(value = it) }
+                }
+                aapsLogger.debug(LTag.BGSOURCE, "CGM correction changed from $lastSlope/$lastOffset to $slope/$offset: ${changed.size} stored values corrected again")
+                if (changed.isNotEmpty()) persistenceLayer.insertCgmSourceData(Sources.Xdrip, changed, emptyList(), null)
+            }
+            preferences.put(XdripDoubleNonKey.LastCorrectionSlope, slope)
+            preferences.put(XdripDoubleNonKey.LastCorrectionOffset, offset)
+        }
+
         @SuppressLint("CheckResult")
         override suspend fun doWorkAndLog(): Result {
             // Drain first, unconditionally: drain() clears DataInbox's pending-work gate, so every
@@ -179,6 +210,7 @@ class XdripSourcePlugin(
             val offset = preferences.get(DoubleKey.BgSourceCorrectionOffset)
             val corrected = BgSlopeOffset.apply(received, slope, offset)
             if (corrected != received) aapsLogger.debug(LTag.BGSOURCE, "CGM correction: $received x $slope + $offset = $corrected mg/dL")
+            recorrectStoredValues(slope, offset)
             glucoseValues += GV(
                 timestamp = bundle.getLong(Intents.EXTRA_TIMESTAMP, 0),
                 value = corrected,

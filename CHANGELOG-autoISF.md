@@ -5,6 +5,17 @@ Testversion. Nur mit virtueller Pumpe oder im Open Loop testen.
 
 ---
 
+## 2026-11-22 (43) – CGM-Korrektur: negativer Offset, kein Sprung nach einer Änderung (nur dev, im Test) ⚠
+
+- **CGM-Korrektur (Offset):** der Offset geht jetzt in **Schritten von 0,5**. Dadurch gibt es wieder den
+  **Schieberegler mit +/−**, und ein **negativer Offset** lässt sich einstellen. Vorher kam nur ein Eingabefeld,
+  und manche Zahlentastaturen haben kein Minus.
+- **CGM-Korrektur (Steigung/Offset ändern):** ⚠ wenn man Steigung oder Offset ändert, werden die gespeicherten
+  BZ-Werte der **letzten 45 Minuten** (nicht vor dem letzten Sensorwechsel) mit der neuen Einstellung neu
+  berechnet. Vorher gab es einen Sprung zwischen alten und neuen Werten, und AutoISF, Parabel und UKF sahen
+  darin einen schnellen Anstieg oder Abfall. Das passiert beim ersten neuen xDrip-Wert nach der Änderung,
+  die geänderten Werte gehen auch an Nightscout. Nur mit der xDrip-Quelle.
+
 ## 2026-11-17 (42) – duISF-Linie in Blau (nur dev, im Test)
 
 - **AutoISF-Graph:** die **duISF-Linie** ist jetzt **blau** statt cyan. Cyan war im hellen Design auf Weiß zu blass.

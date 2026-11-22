@@ -555,6 +555,8 @@ xdrip_extended_bolus_last_synced_id|XdripLongKey|false
 xdrip_food_last_sync|XdripLongKey|false
 xdrip_glucose_value_last_sync|XdripLongKey|false
 xdrip_info|XdripIntentKey|false
+xdrip_last_correction_offset|XdripDoubleNonKey|false
+xdrip_last_correction_slope|XdripDoubleNonKey|false
 xdrip_profile_store_last_synced_timestamp|XdripLongKey|false
 xdrip_running_mode_last_synced_id|XdripLongKey|false
 xdrip_send_status|BooleanKey|true

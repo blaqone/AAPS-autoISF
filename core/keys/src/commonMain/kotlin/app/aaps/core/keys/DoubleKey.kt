@@ -22,7 +22,8 @@ enum class DoubleKey(
     override val hideParentScreenIfHidden: Boolean = false,
     override val unitType: UnitType = UnitType.NONE,
     override val sync: SyncSpec? = null,
-    override val visibility: ElementVisibility = ElementVisibility.ALWAYS
+    override val visibility: ElementVisibility = ElementVisibility.ALWAYS,
+    override val step: Double? = null
 ) : DoublePreferenceKey {
 
     OverviewInsulinButtonIncrement1(
@@ -249,7 +250,9 @@ enum class DoubleKey(
         title = KeysStrings.pref_title_bg_correction_offset,
         summary = KeysStrings.pref_summary_bg_correction_offset,
         unitType = UnitType.DOUBLE,
-        sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
+        sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional),
+        // 0.5 gives 200 steps, so the slider with +/- is shown and a negative offset can be set
+        step = 0.5
     ),
     ApsAutoIsfBgAccelWeight(
         key = "bgAccel_ISF_weight",

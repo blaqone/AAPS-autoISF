@@ -178,6 +178,17 @@ This program comes with ABSOLUTELY NO WARRANTY, to the extent permitted by appli
 
 The newest changes. ⚠ = this change can affect insulin dosing.
 
+### 2026-11-22 (43) – CGM-Korrektur: negativer Offset, kein Sprung nach einer Änderung (nur dev, im Test) ⚠
+
+- **CGM-Korrektur (Offset):** der Offset geht jetzt in **Schritten von 0,5**. Dadurch gibt es wieder den
+  **Schieberegler mit +/−**, und ein **negativer Offset** lässt sich einstellen. Vorher kam nur ein Eingabefeld,
+  und manche Zahlentastaturen haben kein Minus.
+- **CGM-Korrektur (Steigung/Offset ändern):** ⚠ wenn man Steigung oder Offset ändert, werden die gespeicherten
+  BZ-Werte der **letzten 45 Minuten** (nicht vor dem letzten Sensorwechsel) mit der neuen Einstellung neu
+  berechnet. Vorher gab es einen Sprung zwischen alten und neuen Werten, und AutoISF, Parabel und UKF sahen
+  darin einen schnellen Anstieg oder Abfall. Das passiert beim ersten neuen xDrip-Wert nach der Änderung,
+  die geänderten Werte gehen auch an Nightscout. Nur mit der xDrip-Quelle.
+
 ### 2026-11-17 (42) – duISF-Linie in Blau (nur dev, im Test)
 
 - **AutoISF-Graph:** die **duISF-Linie** ist jetzt **blau** statt cyan. Cyan war im hellen Design auf Weiß zu blass.
@@ -206,13 +217,6 @@ The newest changes. ⚠ = this change can affect insulin dosing.
   Activity Monitor sie benutzt (Phone, oder Automatic ohne frische Uhr-Schritte). So zeigen Schritte-Graph,
   Automation „Schritte“ und Nightscout immer dieselben Schritte, mit denen der Monitor rechnet.
   Bei „Watch“ werden keine Handy-Schritte mehr gespeichert.
-
-### 2026-11-16 (37) – Basalrate als Zahl im Basal-Chip (nur dev, im Test)
-
-- **Hauptbildschirm:** der Basal-Chip zeigt wieder die **Basalrate als Zahl** (wie in AAPS 3), nicht nur das Symbol.
-  Ohne TBR die Profilrate grau (z. B. „0,85 U/h“), bei laufender TBR die Rate in Basal-Farbe mit Prozent
-  (z. B. „1,20 U/h 140%“). Die Rate folgt auch den Stundenwechseln im Basalprofil.
-- Nur Anzeige, keine Änderung an Loop oder Dosierung.
 
 All changes: [CHANGELOG-autoISF.md](CHANGELOG-autoISF.md)
 <!-- changelog:end -->
